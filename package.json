@@ -22,12 +22,12 @@
   "devDependencies": {
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/node": "^20.17.16",
-    "@vitest/coverage-v8": "^0.34.6",
+    "@vitest/coverage-v8": "^3.0.4",
     "rimraf": "^5.0.10",
     "typescript": "^5.7.3",
-    "vite": "^4.5.9",
-    "vite-plugin-dts": "^3.9.1",
-    "vitest": "^0.34.6"
+    "vite": "^6.0.9",
+    "vite-plugin-dts": "^4.5.0",
+    "vitest": "^3.0.4"
   },
   "dependencies": {
     "gl-matrix": "^3.4.3"
