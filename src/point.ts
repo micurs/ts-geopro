@@ -33,7 +33,7 @@ export class Point {
    * @returns a new Point
    */
   static from(v: vec4): Point;
-  static from(x: number, y: number, z: number, w: number): Point;
+  static from(x: number, y: number, z: number, w?: number): Point;
   static from(x: number | vec4, y?: number, z?: number, w = 1.0): Point {
     if (isVec4(x)) {
       return Point.fromVec4(x);

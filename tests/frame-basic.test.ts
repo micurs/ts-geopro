@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, it } from 'vitest';
 
 import { Point, Frame, UnitVector, Vector, deg2rad, round, rad2deg, isFrame, Ray } from '../src';
 
@@ -169,14 +169,17 @@ describe('Frame basic operations', () => {
     const v2 = Vector.fromValues(1, 0, 0);
     const f = Frame.from2Vectors(o, v1, v2);
     const p = Point.from(0, 0, 0);
+    // Assume p is relative to the frame => get its world absolute coordinates
     const abs = p.absolute(f);
-    expect(abs.x).toBe(10);
-    expect(abs.y).toBe(10);
-    expect(abs.z).toBe(10);
-    const rel = abs.relative(f);
-    expect(rel.x).toBe(0);
-    expect(rel.y).toBe(0);
-    expect(rel.z).toBe(0);
+    expect(abs.x).toBeCloseTo(10);
+    expect(abs.y).toBeCloseTo(10);
+    expect(abs.z).toBeCloseTo(10);
+
+    // Assume p is in world coordinates => get its frame relative coordinates
+    const rel = p.relative(f);
+    expect(rel.x).toBe(-10);
+    expect(rel.y).toBe(-10);
+    expect(rel.z).toBe(-10);
   });
 
   test('Compute the absolute and relative position of a ray defined in a frame', () => {
@@ -190,9 +193,9 @@ describe('Frame basic operations', () => {
 
     const ray = Ray.fromPointAndVector(Point.from(0, 0, 0), Vector.fromValues(1, 1, 1));
 
-    // Ray is defined in the frame => get its world coordinates
+    // Ray is defined in the frame f => get its world coordinates
     const rayAbs = ray.absolute(f);
-    expect(rayAbs.o.x).toBeCloseTo(10);
+    expect(rayAbs.o.x).toBeCloseTo(10); // The 0,0,0 in f is 10,10,10 in world
     expect(rayAbs.o.y).toBeCloseTo(10);
     expect(rayAbs.o.z).toBeCloseTo(10);
     expect(rayAbs.d.x).toBeCloseTo(ray.d.x);
@@ -300,13 +303,38 @@ describe('Frame basic operations', () => {
     expect(round(f1f2.o.z, prec)).toBe(0);
   });
 
-  test('Create 2 frames and get one as relative to the other', () => {
-    const f1 = Frame.from2Vectors(Point.from(10, 10, 10), Vector.fromValues(0, 0, 1), Vector.fromValues(1, 0, 0));
-    const f2 = Frame.lookAt(Point.from(10, 10, 10), Point.from(20, 20, 0), UnitVector.fromValues(0, 1, 0));
+  test('Create a standard frame using the lookAt function', () => {
+    const eye = Point.from(1, 1, 0);
+    const frame = Frame.lookAt(eye, Point.from(1, 1, -1), UnitVector.fromValues(0, 1, 0));
+    expect(frame.o).toEqual(eye);
 
-    const f1f2 = f2.relative(f1);
-    expect(f1f2.o.x).toBe(0);
-    expect(f1f2.o.y).toBe(0);
-    expect(f1f2.o.z).toBe(0);
+    expect(frame.i.x).toBe(-1);
+    expect(frame.i.y).toBe(0);
+    expect(frame.i.z).toBe(0);
+
+    expect(frame.j.x).toBe(0);
+    expect(frame.j.y).toBe(1);
+    expect(frame.j.z).toBe(0);
+
+    expect(frame.k.x).toBe(0);
+    expect(frame.k.y).toBe(0);
+    expect(frame.k.z).toBe(-1);
+  });
+
+  test('Create 2 frames and get one as relative to the other', () => {
+    const o = Point.from(10, 10, 10);
+    const t = Point.from(0, 0, 20);
+    const v1 = Vector.fromValues(0, 0, 1);
+    const v2 = Vector.fromValues(1, 0, 0);
+    const dy = UnitVector.fromValues(0, 1, 0);
+
+    const f1 = Frame.from2Vectors(o, v1, v2);
+    const f2 = Frame.lookAt(o, t, dy);
+
+    // f2 is relative to f1 => retrieve the world coordinates of f2
+    const f2World = f2.absolute(f1);
+    expect(f2World.o.x).toBe(20);
+    expect(f2World.o.y).toBe(20);
+    expect(f2World.o.z).toBe(20);
   });
 });

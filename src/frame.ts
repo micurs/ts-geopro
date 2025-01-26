@@ -69,11 +69,19 @@ export class Frame {
     return f;
   }
 
+  /**
+   * Build a Frame from basic camera parameters such as eye, target and up vector
+   * @param eye - the position of the camera and the origin of the frame
+   * @param target - the target point to look at and the Z direction of the frame
+   * @param up - the up vector of the camera and the Y direction of the frame
+   * @returns
+   */
   static lookAt(eye: Point, target: Point, up: UnitVector) {
-    const t = new Frame();
-    mat4.lookAt(t._inverse, eye.vec3(), target.vec3(), up.vec3());
-    mat4.invert(t._direct, t._inverse);
-    return t;
+    const k = UnitVector.fromPoints(target, eye);
+    const i = UnitVector.crossProduct(up, k);
+    const j = UnitVector.crossProduct(k, i);
+
+    return Frame.fromPointAndVectors(eye, i, j, k);
   }
 
   /**
@@ -85,15 +93,27 @@ export class Frame {
    * @param v2 - a vector in the XY plane of the new frame (if you pass the correct x axis it will be preserved)
    */
   static from2Vectors = (o: Point, v1: Vector | UnitVector, v2: Vector | UnitVector) => {
-    const f = new Frame();
     const k = isUnitVector(v1) ? v1 : UnitVector.fromVector(v1);
     const j = UnitVector.crossProduct(k, isUnitVector(v2) ? v2 : UnitVector.fromVector(v2));
     const i = UnitVector.crossProduct(j, k);
 
+    return Frame.fromPointAndVectors(o, i, j, k);
+  };
+
+  /**
+   * Builds a frame directly from the origin and the 3 unit vectors
+   * @remarks this function does not check if the vectors are orthogonal to each other!
+   * @param o - origin point
+   * @param i - unit vector for the X axis
+   * @param j - unit vector for the Y axis
+   * @param k - unit vector for the Z axis
+   * @returns a mew Frame.
+   */
+  static fromPointAndVectors = (o: Point, i: UnitVector, j: UnitVector, k: UnitVector) => {
+    const f = new Frame();
     const matValues: MatEntries = [...i.coordinates, ...j.coordinates, ...k.coordinates, ...o.coordinates] as MatEntries;
 
     f._direct = mat4.fromValues(...matValues);
-    // mat4.transpose(f._direct, f._direct);
     mat4.invert(f._inverse, f._direct);
 
     return f;
@@ -104,7 +124,7 @@ export class Frame {
   }
 
   toString() {
-    return `Frame(${this.origin}, ${this.i}, ${this.j}, ${this.k})`;
+    return `Frame(\n\t${this.origin},\n\t${this.i},\n\t${this.j},\n\t${this.k}\n)`;
   }
 
   map(t: GeoMap): Frame {
@@ -194,7 +214,7 @@ export class Frame {
    * The origin of this frame
    */
   get origin(): Point {
-    return Point.from(this._inverse[12], this._inverse[13], this._inverse[14], this._inverse[15]);
+    return Point.from(this._direct[12], this._direct[13], this._direct[14], this._direct[15]);
   }
 
   relative<T extends { relative: (f: Frame) => T }>(x: T): T {
@@ -202,6 +222,17 @@ export class Frame {
       const ro = this.origin.relative(x);
       const rz = this.k.relative(x);
       const rx = this.i.relative(x);
+      const rf = Frame.from2Vectors(ro, rz, rx);
+      return rf as any as T;
+    }
+    return x.relative(this);
+  }
+
+  absolute<T extends { relative: (f: Frame) => T }>(x: T): T {
+    if (x && isFrame(x)) {
+      const ro = this.origin.absolute(x);
+      const rz = this.k.absolute(x);
+      const rx = this.i.absolute(x);
       const rf = Frame.from2Vectors(ro, rz, rx);
       return rf as any as T;
     }
