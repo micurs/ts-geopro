@@ -1,11 +1,11 @@
-import { mat4 } from "gl-matrix";
-import { UnitVector, isUnitVector } from "./unit-vector.ts";
-import { Vector } from "./vector.ts";
-import { Point } from "./point.ts";
+import { mat4 } from 'gl-matrix';
+import { UnitVector, isUnitVector } from './unit-vector.ts';
+import { Vector } from './vector.ts';
+import { Point } from './point.ts';
 import { Transform } from './transform.ts';
 
-import type { MatEntries } from "./types.ts";
-import type { GeoMap } from "./operations.ts";
+import type { MatEntries } from './types.ts';
+import type { GeoMap } from './operations.ts';
 
 export class Frame {
   _direct: mat4;
