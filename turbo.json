@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "test": {
+      "dependsOn": ["build", "^test"],
+      "outputs": ["tests-coverage/**"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    }
+  }
+}
