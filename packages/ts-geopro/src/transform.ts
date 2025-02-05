@@ -4,7 +4,6 @@ import { UnitVector } from './unit-vector.ts';
 import { Vector } from './vector.ts';
 import { Rotation } from './rotation.ts';
 
-
 export class Transform {
   _direct: mat4;
   _inverse: mat4;

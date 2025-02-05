@@ -124,7 +124,7 @@ export class Frame {
   }
 
   toString() {
-    return `Frame(\n\t${this.origin},\n\t${this.i},\n\t${this.j},\n\t${this.k}\n)`;
+    return `frame: { o: ${this.origin}, i: ${this.i}, j: ${this.j}, k: ${this.k} }`;
   }
 
   map(t: Frame): Frame {
@@ -145,10 +145,10 @@ export class Frame {
    */
   compose(t: Frame): Frame {
     const frame = new Frame();
-    const { _direct: dm1 } = this;
-    const { _direct: dm2 } = t;
+    const { _direct: dm1, _inverse: im1 } = this;
+    const { _direct: dm2, _inverse: im2 } = t;
     mat4.multiply(frame._direct, dm2, dm1);
-    mat4.invert(frame._inverse, frame._direct);
+    mat4.multiply(frame._inverse, im1, im2);
     return frame;
   }
 

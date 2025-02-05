@@ -1,6 +1,8 @@
 import { vec2 } from "gl-matrix";
 import type { Rotation, Vector } from './index.ts';
 
+export type Elem<T> = T extends (infer U)[] ? U : never;
+
 export interface Ray2D {
   origin: vec2;
   direction: vec2;

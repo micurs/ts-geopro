@@ -5,7 +5,7 @@ import { Transform } from './transform.ts';
 import { UnitVector } from './unit-vector.ts';
 
 import type { VecEntries } from './types.ts';
-import { isFrame, type GeoMap } from './operations.ts';
+import { isFrame } from './operations.ts';
 
 const isVec4 = (v: any): v is vec4 => {
   return v.length === 4;
