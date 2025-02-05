@@ -1,14 +1,15 @@
 import { vec3, vec4 } from "gl-matrix";
 import { Vector } from "./vector.ts";
 import { Frame } from "./frame.ts";
+import { Transform } from './transform.ts';
 import { UnitVector } from './unit-vector.ts';
 
-import type { VecEntries } from "./types.ts";
-import type { GeoMap } from "./operations.ts";
+import type { VecEntries } from './types.ts';
+import { isFrame, type GeoMap } from './operations.ts';
 
 const isVec4 = (v: any): v is vec4 => {
   return v.length === 4;
-}
+};
 
 export class Point {
   private _coord: vec4;
@@ -79,9 +80,9 @@ export class Point {
    * @param t - transformation or reference frame
    * @returns a new Point
    */
-  map(t: GeoMap): Point {
+  map(t: Transform | Frame): Point {
     const p = new Point();
-    if (t.isFrame()) {
+    if (isFrame(t)) {
       vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
     } else {
       vec4.transformMat4(p._coord, this._coord, t.directMatrix);
@@ -96,9 +97,9 @@ export class Point {
    * @param t - Transform or Frame
    * @returns a new Point
    */
-  unMap(t: GeoMap): Point {
+  unMap(t: Transform | Frame): Point {
     const p = new Point();
-    if (t.isFrame()) {
+    if (isFrame(t)) {
       vec4.transformMat4(p._coord, this._coord, t.directMatrix);
     } else {
       vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);

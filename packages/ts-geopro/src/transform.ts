@@ -4,7 +4,6 @@ import { UnitVector } from './unit-vector.ts';
 import { Vector } from './vector.ts';
 import { Rotation } from './rotation.ts';
 
-import type { GeoMap } from './operations.ts';
 
 export class Transform {
   _direct: mat4;
@@ -208,7 +207,7 @@ export class Transform {
    * That is: resM = t.M · this.M
    * @param t - the transformation to compose with
    */
-  compose(trans: GeoMap): Transform {
+  compose(trans: Transform): Transform {
     const t = new Transform();
     const { _direct: dm1, _inverse: im1 } = this;
     const { _direct: dm2, _inverse: im2 } = trans;
@@ -267,7 +266,7 @@ export class Transform {
   }
 
   get isIdentity() {
-    return this._isIdentity;
+    return this._isIdentity || mat4.equals(this._direct, this._inverse);
   }
 
   get scaleVector(): Vector {

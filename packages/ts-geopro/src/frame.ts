@@ -5,7 +5,7 @@ import { Point } from './point.ts';
 import { Transform } from './transform.ts';
 
 import type { MatEntries } from './types.ts';
-import type { GeoMap } from './operations.ts';
+import { isFrame } from './operations.ts';
 
 export class Frame {
   _direct: mat4;
@@ -127,11 +127,11 @@ export class Frame {
     return `Frame(\n\t${this.origin},\n\t${this.i},\n\t${this.j},\n\t${this.k}\n)`;
   }
 
-  map(t: GeoMap): Frame {
+  map(t: Frame): Frame {
     return this.compose(t);
   }
 
-  unMap(t: GeoMap): Frame {
+  unMap(t: Frame): Frame {
     return this.invert().compose(t);
   }
 
@@ -143,7 +143,7 @@ export class Frame {
    * That is: resM = t.M · this.M
    * @param t - the transformation to compose with
    */
-  compose(t: GeoMap): Frame {
+  compose(t: Frame): Frame {
     const frame = new Frame();
     const { _direct: dm1 } = this;
     const { _direct: dm2 } = t;
@@ -239,7 +239,3 @@ export class Frame {
     return x.relative(this);
   }
 }
-
-export const isFrame = (d: unknown): d is Frame => {
-  return d && (d as Frame).isFrame !== undefined ? (d as Frame).isFrame() : false;
-};
