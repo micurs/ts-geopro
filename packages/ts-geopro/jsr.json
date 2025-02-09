@@ -5,7 +5,10 @@
   "license": "MIT",
   "publish": {
     "exclude": [
-      "./tests/**"
+      "./tests/**",
+      "deno.lint.json",
+      "vite.*.ts",
+      "vitest.*.ts"
     ]
   }
 }
