@@ -1,4 +1,4 @@
-import { describe, test, expect, it } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import { deg2rad, Frame, Transform, compose, map, Point, Vector, add, Rotation } from '../src';
 
 describe('Operations', () => {

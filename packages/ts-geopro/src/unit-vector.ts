@@ -13,21 +13,23 @@ export class UnitVector implements HomogeneousCoords {
     this._coord = vec4.fromValues(1.0, 1.0, 1.0, 0.0);
   }
 
-  static fromVector(v: Vector) {
+  //#region Static builders
+
+  static fromVector(v: Vector): UnitVector {
     const uv = new UnitVector();
     uv._coord = vec4.fromValues(v.x, v.y, v.z, 0);
     vec4.normalize(uv._coord, uv._coord);
     return uv;
   }
 
-  static fromPoints(p1: Point, p2: Point) {
+  static fromPoints(p1: Point, p2: Point): UnitVector {
     const uv = new UnitVector();
     uv._coord = vec4.fromValues(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z, 0);
     vec4.normalize(uv._coord, uv._coord);
     return uv;
   }
 
-  fromPoint(p: Point) {
+  static fromPoint(p: Point): UnitVector {
     const uv = UnitVector.fromValues(...p.triplet);
     return uv;
   }
@@ -44,13 +46,13 @@ export class UnitVector implements HomogeneousCoords {
    * @param v1 - a first unit-vector
    * @param v2 - a second unit-vector
    */
-  static crossProduct = (v1: UnitVector | Vector, v2: UnitVector | Vector) => {
+  static crossProduct = (v1: UnitVector | Vector, v2: UnitVector | Vector): UnitVector => {
     const res = vec3.create();
     vec3.cross(res, v1.vec3(), v2.vec3());
     return UnitVector.fromVec3(res);
   };
 
-  static fromVec4(v: vec4) {
+  static fromVec4(v: vec4): UnitVector {
     const p = new UnitVector();
     const w = v[3] !== 0 ? v[3] : 1.0;
     p._coord = vec4.fromValues(v[0] / w, v[1] / w, v[2] / w, 0.0);
@@ -58,14 +60,16 @@ export class UnitVector implements HomogeneousCoords {
     return p;
   }
 
-  static fromVec3(v: vec3) {
+  static fromVec3(v: vec3): UnitVector {
     const p = new UnitVector();
     p._coord = vec4.fromValues(v[0], v[1], v[2], 0.0);
     vec4.normalize(p._coord, p._coord);
     return p;
   }
 
-  toString() {
+  //#endregion Static builders
+
+  toString(): string {
     return `UnitVector(${this.x}, ${this.y}, ${this.z})`;
   }
 
@@ -108,32 +112,32 @@ export class UnitVector implements HomogeneousCoords {
   /**
    * return tru if the object is a UnitVector
    */
-  isUnitVector() {
+  isUnitVector(): boolean {
     return true;
   }
 
   /**
    * Get component along the X axis
    */
-  get x() {
+  get x(): number {
     return this._coord[0];
   }
 
   /**
    * Get component along the Y axis
    */
-  get y() {
+  get y(): number {
     return this._coord[1];
   }
 
   /**
    * Get component along the Z axis
    */
-  get z() {
+  get z(): number {
     return this._coord[2];
   }
 
-  get length() {
+  get length(): number {
     return 1.0;
   }
 

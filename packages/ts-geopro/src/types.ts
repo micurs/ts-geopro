@@ -80,7 +80,7 @@ export interface HomogeneousCoords {
   readonly y: number;
   readonly z: number;
 
-  map(t: GeoMatrix): any;
+  map(t: GeoMatrix): HomogeneousCoords;
 }
 
 export interface Addable {

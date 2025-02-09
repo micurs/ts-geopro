@@ -1,5 +1,4 @@
-import { Frame } from "./frame.ts";
-import { isUnitVector } from './operations.ts';
+import { Frame } from './frame.ts';
 import { Point } from './point.ts';
 import { UnitVector } from './unit-vector.ts';
 import { Vector } from './vector.ts';
@@ -12,6 +11,8 @@ export class Ray {
     this._origin = Point.from(0, 0, 0);
     this._direction = UnitVector.fromValues(1, 0, 0);
   }
+
+  //#region Static builders
 
   static fromPoints(o: Point, d: Point): Ray {
     const r = new Ray();
@@ -26,6 +27,8 @@ export class Ray {
     r._direction = UnitVector.fromVector(d);
     return r;
   }
+
+  //#endregion Static builders
 
   get o(): Point {
     return this._origin;

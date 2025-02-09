@@ -28,7 +28,7 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
     return this._inverse[4 * row + col]!;
   }
 
-  get isWorld() {
+  get isWorld(): boolean {
     return this._isWorld || mat4.equals(this._direct, this._inverse);
   }
 
@@ -49,7 +49,8 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
   }
 
   //#region Static builders
-  static world() {
+
+  static world(): Frame {
     const f = new Frame();
     return f;
   }
@@ -59,7 +60,7 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
    * @param t - the transformation
    * @returns a Frame representing the given transformation
    */
-  static from(t: Transform) {
+  static from(t: Transform): Frame {
     const f = new Frame();
     f._direct = t.directMatrix;
     f._inverse = t.inverseMatrix;
@@ -74,7 +75,7 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
    * @param up - the up vector of the camera and the Y direction of the frame
    * @returns
    */
-  static lookAt(eye: Point, target: Point, up: UnitVector) {
+  static lookAt(eye: Point, target: Point, up: UnitVector): Frame {
     const k = UnitVector.fromPoints(target, eye);
     const i = UnitVector.crossProduct(up, k);
     const j = UnitVector.crossProduct(k, i);
@@ -90,7 +91,7 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
    * @param v1 - a vector indicating the Z of the new frame
    * @param v2 - a vector in the XY plane of the new frame (if you pass the correct x axis it will be preserved)
    */
-  static from2Vectors = (o: Point, v1: Vector | UnitVector, v2: Vector | UnitVector) => {
+  static from2Vectors = (o: Point, v1: Vector | UnitVector, v2: Vector | UnitVector): Frame => {
     const k = isUnitVector(v1) ? v1 : UnitVector.fromVector(v1);
     const j = UnitVector.crossProduct(k, isUnitVector(v2) ? v2 : UnitVector.fromVector(v2));
     const i = UnitVector.crossProduct(j, k);
@@ -107,7 +108,7 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
    * @param k - unit vector for the Z axis
    * @returns a mew Frame.
    */
-  static fromPointAndVectors = (o: Point, i: UnitVector, j: UnitVector, k: UnitVector) => {
+  static fromPointAndVectors = (o: Point, i: UnitVector, j: UnitVector, k: UnitVector): Frame => {
     const f = new Frame();
     const matValues: MatEntries = [...i.coordinates, ...j.coordinates, ...k.coordinates, ...o.coordinates] as MatEntries;
 
@@ -118,7 +119,7 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
     return f;
   };
 
-  static fromMatrices = (inverse: ReadonlyMat4, direct: ReadonlyMat4) => {
+  static fromMatrices = (inverse: ReadonlyMat4, direct: ReadonlyMat4): Frame => {
     const f = new Frame();
     f._direct = mat4.clone(direct);
     f._inverse = mat4.clone(inverse);
@@ -128,11 +129,11 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
   };
   //#endregion
 
-  isFrame() {
+  isFrame(): boolean {
     return true;
   }
 
-  toString() {
+  toString(): string {
     return `frame: { o: ${this.origin}, i: ${this.i}, j: ${this.j}, k: ${this.k} }`;
   }
 
@@ -229,7 +230,7 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
       const rz = this.k.relative(x);
       const rx = this.i.relative(x);
       const rf = Frame.from2Vectors(ro, rz, rx);
-      return rf as any as Frame;
+      return rf;
     }
     return x.relative(this);
   }
@@ -249,7 +250,7 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
       const rz = this.k.absolute(x);
       const rx = this.i.absolute(x);
       const rf = Frame.from2Vectors(ro, rz, rx);
-      return rf as any as Frame;
+      return rf;
     }
     return x.relative(this);
   }

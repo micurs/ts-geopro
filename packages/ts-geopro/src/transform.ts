@@ -30,7 +30,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
   get directMatrix(): mat4 {
     return this._direct;
   }
-  get inverseMatrix() {
+  get inverseMatrix(): mat4 {
     return this._inverse;
   }
 
@@ -50,12 +50,12 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
    * Create an identity transformation
    * @returns a new identity transformation
    */
-  static identity() {
+  static identity(): Transform {
     const t = new Transform();
     return t;
   }
 
-  static fromRotation(rot: Rotation) {
+  static fromRotation(rot: Rotation): Transform {
     const t = new Transform();
     mat4.fromQuat(t._direct, rot.quat);
     mat4.invert(t._inverse, t._direct);
@@ -63,7 +63,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return t;
   }
 
-  static fromMat4(direct: mat4) {
+  static fromMat4(direct: mat4): Transform {
     const t = new Transform();
     const inverse = mat4.create();
     mat4.invert(inverse, direct);
@@ -74,7 +74,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
   }
 
   /* c8 ignore start */
-  static lookAt(eye: Point, target: Point, up: UnitVector) {
+  static lookAt(eye: Point, target: Point, up: UnitVector): Transform {
     const t = new Transform();
     mat4.lookAt(t._direct, eye.vec3(), target.vec3(), up.vec3());
     mat4.invert(t._inverse, t._direct);
@@ -101,7 +101,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return t;
   }
 
-  static fromTranslation(tx: number, ty: number, tz: number) {
+  static fromTranslation(tx: number, ty: number, tz: number): Transform {
     const t = new Transform();
     mat4.translate(t._direct, t._direct, [tx, ty, tz]);
     mat4.invert(t._inverse, t._direct);
@@ -109,7 +109,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return t;
   }
 
-  static fromMove(mv: Vector) {
+  static fromMove(mv: Vector): Transform {
     const t = new Transform();
     mat4.translate(t._direct, t._direct, mv.vec3());
     mat4.invert(t._inverse, t._direct);
@@ -117,7 +117,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return t;
   }
 
-  static fromRotationX(a: number) {
+  static fromRotationX(a: number): Transform {
     const t = new Transform();
     mat4.rotateX(t._direct, t._direct, a);
     mat4.invert(t._inverse, t._direct);
@@ -125,7 +125,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return t;
   }
 
-  static fromRotationY(a: number) {
+  static fromRotationY(a: number): Transform {
     const t = new Transform();
     mat4.rotateY(t._direct, t._direct, a);
     mat4.invert(t._inverse, t._direct);
@@ -133,7 +133,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return t;
   }
 
-  static fromRotationZ(a: number) {
+  static fromRotationZ(a: number): Transform {
     const t = new Transform();
     mat4.rotateZ(t._direct, t._direct, a);
     mat4.invert(t._inverse, t._direct);
@@ -141,7 +141,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return t;
   }
 
-  static fromScale(tx: number, ty: number, tz: number) {
+  static fromScale(tx: number, ty: number, tz: number): Transform {
     const t = new Transform();
     mat4.scale(t._direct, t._direct, [tx, ty, tz]);
     mat4.invert(t._inverse, t._direct);
@@ -155,7 +155,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
    * @param rot - the rotation
    * @param mv - the translation
    */
-  static fromRotoTranslation(rot: Rotation, mv: Vector) {
+  static fromRotoTranslation(rot: Rotation, mv: Vector): Transform {
     const t = new Transform();
     mat4.fromRotationTranslation(t._direct, rot.quat, mv.vec3());
     mat4.invert(t._inverse, t._direct);
@@ -171,7 +171,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
    * @param scale - the scale
    * @returns a full transformation that represents the rotation, translation and scale
    */
-  static fromRotOTranslationScale(rot: Rotation, mv: Vector, scale: Vector) {
+  static fromRotOTranslationScale(rot: Rotation, mv: Vector, scale: Vector): Transform {
     const t = new Transform();
     mat4.fromRotationTranslationScale(t._direct, rot.quat, mv.vec3(), scale.vec3());
     mat4.invert(t._inverse, t._direct);
@@ -179,7 +179,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return t;
   }
 
-  static fromMatrices(inverse: ReadonlyMat4, direct: ReadonlyMat4) {
+  static fromMatrices(inverse: ReadonlyMat4, direct: ReadonlyMat4): Transform {
     const f = new Transform();
     f._direct = mat4.clone(direct);
     f._inverse = mat4.clone(inverse);
@@ -215,7 +215,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
   }
   */
 
-  isFrame() {
+  isFrame(): boolean {
     return false;
   }
 
@@ -242,7 +242,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return Transform.fromMatrices(inverse, direct) as AffineGeoMatrix;
   }
 
-  transpose() {
+  transpose(): Transform {
     const t = new Transform();
     mat4.transpose(t._direct, this._direct);
     mat4.invert(t._inverse, t._direct);
@@ -275,7 +275,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
   //   return this.compose(t);
   // }
 
-  invert() {
+  invert(): Transform {
     const t = new Transform();
     t._direct = mat4.clone(this._inverse);
     t._inverse = mat4.clone(this._direct);
@@ -283,7 +283,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return t;
   }
 
-  get isIdentity() {
+  get isIdentity(): boolean {
     return this._isIdentity || mat4.equals(this._direct, this._inverse);
   }
 

@@ -17,7 +17,10 @@
     "build": "tsc && rimraf dist && vite build",
     "preview": "vite preview",
     "test": "vitest run --coverage",
-    "watch:test": "vitest watch"
+    "watch:test": "vitest watch",
+    "jsr:publish": "pnpm dlx jsr publish",
+    "jsr:test-publish": "pnpm dlx jsr publish --dry-run --allow-dirty",
+    "lint": "deno lint -c ./deno.lint.json --fix"
   },
   "devDependencies": {
     "@types/node": "^20.17.16",

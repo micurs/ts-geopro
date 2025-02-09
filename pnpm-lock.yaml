@@ -15,6 +15,12 @@ importers:
         specifier: ^2.4.0
         version: 2.4.0
 
+  apps/cli-demos:
+    dependencies:
+      '@micurs/ts-geopro':
+        specifier: workspace:*
+        version: link:../../packages/ts-geopro
+
   packages/ts-geopro:
     dependencies:
       gl-matrix:

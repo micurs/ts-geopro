@@ -1,0 +1,6 @@
+{
+  "name": "cli-demos",
+  "dependencies": {
+    "@micurs/ts-geopro": "workspace:*"
+  }
+}

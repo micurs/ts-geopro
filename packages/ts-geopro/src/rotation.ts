@@ -10,37 +10,39 @@ export class Rotation {
     this._inverse = quat.create();
   }
 
-  static identity() {
+  //#region Static builders
+
+  static identity(): Rotation {
     const r = new Rotation();
     return r;
   }
 
-  static fromValues(x: number, y: number, z: number, w: number) {
+  static fromValues(x: number, y: number, z: number, w: number): Rotation {
     const r = new Rotation();
     r._direct = quat.fromValues(x, y, z, w);
     quat.invert(r._inverse, r._direct);
     return r;
   }
 
-  static fromAngles(x: number, y: number, z: number) {
+  static fromAngles(x: number, y: number, z: number): Rotation {
     return Rotation.rotationX(x).rotateY(y).rotateZ(z);
   }
 
-  static fromQuat(direct: quat) {
+  static fromQuat(direct: quat): Rotation {
     const r = new Rotation();
     r._direct = quat.clone(direct);
     quat.invert(r._inverse, r._direct);
     return r;
   }
 
-  static fromArray(direct: number[]) {
+  static fromArray(direct: number[]): Rotation {
     const r = new Rotation();
     r._direct = quat.clone(direct as quat);
     quat.invert(r._inverse, r._direct);
     return r;
   }
 
-  static fromTransform(t: Transform) {
+  static fromTransform(t: Transform): Rotation {
     const rm = mat3.create();
     mat3.fromMat4(rm, t.directMatrix);
     const r = new Rotation();
@@ -49,26 +51,28 @@ export class Rotation {
     return r;
   }
 
-  static rotationX(a: number) {
+  static rotationX(a: number): Rotation {
     const r = new Rotation();
     quat.rotateX(r._direct, r._direct, a);
     quat.invert(r._inverse, r._direct);
     return r;
   }
 
-  static rotationY(a: number) {
+  static rotationY(a: number): Rotation {
     const r = new Rotation();
     quat.rotateY(r._direct, r._direct, a);
     quat.invert(r._inverse, r._direct);
     return r;
   }
 
-  static rotationZ(a: number) {
+  static rotationZ(a: number): Rotation {
     const r = new Rotation();
     quat.rotateZ(r._direct, r._direct, a);
     quat.invert(r._inverse, r._direct);
     return r;
   }
+
+  //#endregion
 
   rotateX(a: number): Rotation {
     return this.compose(Rotation.rotationX(a));
