@@ -134,7 +134,7 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
   }
 
   toString(): string {
-    return `frame: { o: ${this.origin}, i: ${this.i}, j: ${this.j}, k: ${this.k} }`;
+    return `Frame: { o: {${this.origin}}, i: {${this.i}}, j: {${this.j}}, k: {${this.k}} }`;
   }
 
   /**

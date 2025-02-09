@@ -58,7 +58,7 @@ describe('Point basic operations', () => {
 
   test('Get a String from a Point', () => {
     const p = Point.fromValues(10, 20, 15);
-    expect(p.toString()).toBe('Point(10, 20, 15)');
+    expect(p.toString()).toBe('Point: [10, 20, 15]');
   });
 
   test('Subtract 2 points returns a vector', () => {

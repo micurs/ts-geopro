@@ -20,6 +20,12 @@ export class Vector implements HomogeneousCoords, Addable {
 
   //#region Static builders
 
+  /**
+   * Build a Vector from a Point, a vec4 or vec3, or from three numbers
+   * @param x - a Point, vec3, vec4 or a number
+   * @param y - a y component
+   * @param z - a z component
+   */
   static from(x: Point): Vector;
   static from(x: vec4): Vector;
   static from(x: vec3): Vector;
