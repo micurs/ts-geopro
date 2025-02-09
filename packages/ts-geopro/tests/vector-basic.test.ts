@@ -20,6 +20,8 @@ describe('Vector basic operations', () => {
     expect(vec.vec4()).toEqual(v4);
     expect(vecFromVec3.vec4()).toEqual(v4);
     expect(vecFromVec4.vec3()).toEqual(v3);
+
+    expect(vec.triplet).toEqual([10, 20, 15]);
   });
 
   test('Create a vector from a point', () => {
@@ -96,9 +98,15 @@ describe('Vector operations', () => {
     const v1 = Vector.fromValues(1, 0, 0);
     const v2 = Vector.fromValues(0, 1, 0);
     const v3 = Vector.crossProduct(v1, v2);
+    const v4 = v1.crossProduct(v2);
+
     expect(v3.x).toBe(0);
     expect(v3.y).toBe(0);
     expect(v3.z).toBe(1);
+
+    expect(v4.x).toBe(0);
+    expect(v4.y).toBe(0);
+    expect(v4.z).toBe(1);
   });
 
   test('Dot-product of two vectors', () => {

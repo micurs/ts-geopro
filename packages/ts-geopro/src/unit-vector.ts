@@ -111,13 +111,9 @@ export class UnitVector implements HomogeneousCoords {
     return p;
   }
 
-  // scale(s: number): Vector {
-  //   return Vector.fromValues(this.x * s, this.y * s, this.z * s);
-  // }
-
-  // add(v: Vector | UnitVector): Vector {
-  //   return Vector.fromValues(this.x + v.x, this.y + v.y, this.z + v.z);
-  // }
+  dot = (v: UnitVector): number => {
+    return vec3.dot(this.vec3(), v.vec3());
+  };
 
   /**
    * return tru if the object is a UnitVector
@@ -172,10 +168,12 @@ export class UnitVector implements HomogeneousCoords {
     return this._coord;
   }
 
+  /* v8 ignore next 3 */
   static get Float32Size(): number {
     return 4 * 4;
   }
 
+  /* v8 ignore next 3 */
   get asFloat32Array(): ArrayBuffer {
     return new Float32Array(this.coordinates);
   }

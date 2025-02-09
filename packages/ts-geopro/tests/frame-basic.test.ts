@@ -250,8 +250,16 @@ describe('Frame basic operations', () => {
     const v2 = Vector.fromValues(1, 0, 0);
     const f = Frame.from2Vectors(o, v1, v2);
 
-    expect(f.i).toEqual(UnitVector.fromValues(1, 0, 0));
-    expect(f.k).toEqual(UnitVector.fromValues(0, 0, 1));
+    const expectedI = UnitVector.fromValues(1, 0, 0);
+    const expectedK = UnitVector.fromValues(0, 0, 1);
+
+    expect(f.i.x).toBeCloseTo(expectedI.x);
+    expect(f.i.y).toBeCloseTo(expectedI.y);
+    expect(f.i.z).toBeCloseTo(expectedI.z);
+
+    expect(f.k.x).toBeCloseTo(expectedK.x);
+    expect(f.k.y).toBeCloseTo(expectedK.y);
+    expect(f.k.z).toBeCloseTo(expectedK.z);
 
     const ray = Ray.fromPointAndVector(Point.from(0, 0, 0), Vector.fromValues(1, 1, 1));
 

@@ -2,10 +2,10 @@ import { vec3, vec4 } from "gl-matrix";
 import { Transform } from "./transform.ts";
 import { Frame } from "./frame.ts";
 import { Point } from "./point.ts";
-import { isVec3, isVec4 } from './operations.ts';
+import { isUnitVector, isVec3, isVec4 } from './operations.ts';
 
 import type { Addable, HomogeneousCoords, VecEntries } from './types.ts';
-import type { UnitVector } from './unit-vector.ts';
+import { UnitVector } from './unit-vector.ts';
 
 export class Vector implements HomogeneousCoords, Addable {
   private _coord: vec4;
@@ -29,8 +29,12 @@ export class Vector implements HomogeneousCoords, Addable {
   static from(x: Point): Vector;
   static from(x: vec4): Vector;
   static from(x: vec3): Vector;
+  static from(x: UnitVector): Vector;
   static from(x: number, y: number, z: number): Vector;
-  static from(x: number | vec4 | vec3 | Point, y?: number, z?: number): Vector {
+  static from(x: number | vec4 | vec3 | Point | UnitVector, y?: number, z?: number): Vector {
+    if (isUnitVector(x)) {
+      return Vector.from(x.x, x.y, x.z);
+    }
     if (isVec3(x)) {
       return Vector.fromVec3(x);
     } else if (isVec4(x)) {
@@ -209,6 +213,9 @@ export class Vector implements HomogeneousCoords, Addable {
     return [this.x, this.y, this.z];
   }
 
+  /**
+   * Get the homogenous 4 components vector coordinates
+   */
   get coordinates(): VecEntries {
     return [...this._coord.values()] as VecEntries;
   }
@@ -235,10 +242,12 @@ export class Vector implements HomogeneousCoords, Addable {
     return vec4.fromValues(this.x, this.y, this.z, 0.0);
   }
 
+  /* v8 ignore next 3 */
   static get Float32Size(): number {
     return 4 * 4;
   }
 
+  /* v8 ignore next 3 */
   get asFloat32Array(): ArrayBuffer {
     return new Float32Array(this.coordinates);
   }

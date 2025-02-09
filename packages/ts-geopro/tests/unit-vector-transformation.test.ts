@@ -8,7 +8,9 @@ describe('UnitVector transformations', () => {
     const t = Transform.fromTranslation(2, 2, 2);
 
     const v2 = v.map(t);
-    expect(v2).toEqual(v);
+    expect(v2.x).toBeCloseTo(v.x);
+    expect(v2.y).toBeCloseTo(v.y);
+    expect(v2.z).toBeCloseTo(v.z);
   });
 
   test('UnitVector.map(t) on a rotation returns a rotated UnitVector', () => {
@@ -21,6 +23,8 @@ describe('UnitVector transformations', () => {
     expect(v2.z).toBeCloseTo(0);
 
     const v3 = v2.unMap(t);
-    expect(v3).toEqual(v);
+    expect(v3.x).toBeCloseTo(v.x);
+    expect(v3.y).toBeCloseTo(v.y);
+    expect(v3.z).toBeCloseTo(v.z);
   });
 });

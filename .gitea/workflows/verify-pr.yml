@@ -1,0 +1,28 @@
+name: Verify Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize] # Trigger the workflow when a PR is opened or updated
+
+jobs:
+  test-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }} # Checkout the PR branch
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20 # Specify the Node.js version
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Run Tests
+        run: pnpm run test
