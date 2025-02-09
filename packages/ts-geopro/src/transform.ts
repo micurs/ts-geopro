@@ -42,9 +42,6 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
   //   return this._inverse.values();
   // }
 
-  // static get bufferSize(): number {
-  //   return 16 * 4;
-  // }
   //#endregion
 
   //#region Static builders
@@ -222,14 +219,6 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return false;
   }
 
-  buffer(): ArrayBuffer {
-    return new Float32Array(this._direct.values());
-  }
-
-  inverseBuffer(): ArrayBuffer {
-    return new Float32Array(this._inverse.values());
-  }
-
   /**
    * Applies the transformation to a point
    * @param p - the point to transform
@@ -311,5 +300,17 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     const t = vec3.create();
     mat4.getTranslation(t, this._direct);
     return Vector.fromValues(t[0], t[1], t[2]);
+  }
+
+  static get Float32Size(): number {
+    return 16 * 4;
+  }
+
+  get asFloat32Array(): ArrayBuffer {
+    return new Float32Array(this._direct.values());
+  }
+
+  get inverseAsFloat32Array(): ArrayBuffer {
+    return new Float32Array(this._inverse.values());
   }
 }

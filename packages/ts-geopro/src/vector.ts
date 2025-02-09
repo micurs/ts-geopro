@@ -18,10 +18,6 @@ export class Vector implements HomogeneousCoords, Addable {
     return true;
   }
 
-  // static get bufferSize(): number {
-  //   return 4 * 4;
-  // }
-
   static from(x: Point): Vector;
   static from(x: vec4): Vector;
   static from(x: vec3): Vector;
@@ -207,10 +203,6 @@ export class Vector implements HomogeneousCoords, Addable {
     return [...this._coord.values()] as VecEntries;
   }
 
-  buffer(): ArrayBuffer {
-    return new Float32Array(this.coordinates);
-  }
-
   get length() {
     const x = this._coord[0];
     const y = this._coord[1];
@@ -231,5 +223,13 @@ export class Vector implements HomogeneousCoords, Addable {
 
   vec4(): Readonly<vec4> {
     return vec4.fromValues(this.x, this.y, this.z, 0.0);
+  }
+
+  static get Float32Size(): number {
+    return 4 * 4;
+  }
+
+  get asFloat32Array(): ArrayBuffer {
+    return new Float32Array(this.coordinates);
   }
 }

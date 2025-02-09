@@ -150,19 +150,19 @@ export class UnitVector implements HomogeneousCoords {
     return v.crossProduct(v2 as Vector);
   }
 
-  static get Float32Size(): number {
-    return 4 * 4;
-  }
-
-  get asFloat32Array(): ArrayBuffer {
-    return new Float32Array(this.coordinates);
-  }
-
   vec3(): Readonly<vec3> {
     return vec3.fromValues(this.x, this.y, this.z);
   }
 
   vec4(): Readonly<vec4> {
     return this._coord;
+  }
+
+  static get Float32Size(): number {
+    return 4 * 4;
+  }
+
+  get asFloat32Array(): ArrayBuffer {
+    return new Float32Array(this.coordinates);
   }
 }

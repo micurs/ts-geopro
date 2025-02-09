@@ -153,15 +153,19 @@ export class Point implements HomogeneousCoords {
     return [this.x, this.y, this.z];
   }
 
-  buffer(): ArrayBuffer {
-    return new Float32Array(this.coordinates);
-  }
-
   vec3(): Readonly<vec3> {
     return vec3.fromValues(this.x, this.y, this.z);
   }
 
   vec4(): Readonly<vec4> {
     return vec4.fromValues(this.x, this.y, this.z, 1.0);
+  }
+
+  static get Float32Size(): number {
+    return 4 * 4;
+  }
+
+  get asFloat32Array(): ArrayBuffer {
+    return new Float32Array(this.coordinates);
   }
 }

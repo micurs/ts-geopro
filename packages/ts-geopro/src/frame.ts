@@ -253,4 +253,16 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
     }
     return x.relative(this);
   }
+
+  static get Float32Size(): number {
+    return 16 * 4;
+  }
+
+  get asFloat32Array(): ArrayBuffer {
+    return new Float32Array(this._direct.values());
+  }
+
+  get inverseAsFloat32Array(): ArrayBuffer {
+    return new Float32Array(this._inverse.values());
+  }
 }
