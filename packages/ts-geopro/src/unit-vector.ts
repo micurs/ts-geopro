@@ -5,6 +5,7 @@ import { Frame } from "./frame.ts";
 import { Point } from './point.ts';
 
 import type { HomogeneousCoords, VecEntries } from './types.ts';
+import { isVector } from './operations.ts';
 
 export class UnitVector implements HomogeneousCoords {
   private _coord: vec4;
@@ -14,6 +15,15 @@ export class UnitVector implements HomogeneousCoords {
   }
 
   //#region Static builders
+
+  static from(x: Vector): UnitVector;
+  static from(x: number, y: number, z: number): UnitVector;
+  static from(x: number | Vector, y?: number, z?: number): UnitVector {
+    if (isVector(x)) {
+      return UnitVector.fromVector(x);
+    }
+    return UnitVector.fromValues(x, y!, z!);
+  }
 
   static fromVector(v: Vector): UnitVector {
     const uv = new UnitVector();
@@ -70,7 +80,7 @@ export class UnitVector implements HomogeneousCoords {
   //#endregion Static builders
 
   toString(): string {
-    return `UnitVector(${this.x}, ${this.y}, ${this.z})`;
+    return `UnitVector: [${this.x}, ${this.y}, ${this.z}]`;
   }
 
   map(t: Transform | Frame): UnitVector {

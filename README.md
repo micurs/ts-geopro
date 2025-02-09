@@ -50,41 +50,45 @@ pnpm add @micurs/ts-geopro
 ### Basic Vector Operations
 
 ```typescript
-import { Vector, UnitVector } from '@micurs/ts-geopro';
+import { Point, Vector, UnitVector, add } from '@micurs/ts-geopro';
 
-// Create and manipulate vectors
-const v1 = new Vector(1, 0, 0);
-const v2 = new Vector(0, 1, 0);
+const p1 = Point.from(2, 3, 8);
+const p2 = Point.from(10, 10, 10);
+
+const fromTwoPoints = Vector.fromPoints(p2, p1);
+console.log('Vector from 2 points: ', ` ${p2} - ${p1} =`, fromTwoPoints.toString());
+
+const v1 = Vector.from(1, 0, 0);
+const v2 = Vector.from(0, 1, 0);
 const crossProduct = UnitVector.crossProduct(v1, v2);
+
+console.log('UnitVector from cross product: ', ` ${v1} X ${v2} =`, crossProduct.toString());
+
+const pStart = Point.from(4, 5, 10);
+const vDir = Vector.from(6, 5, 0);
+
+const newPoint = add(pStart, vDir);
+
+console.log('Point from Point + Vector: ', ` ${pStart} + ${vDir} =`, newPoint.toString());
+
+const vDir1 = Vector.from(1, 1, 0);
+const vDir2 = Vector.from(1, -1, 0);
+
+const inBetweenDir = UnitVector.from(add(vDir1, vDir2));
+
+console.log('Direction in between two vectors: ', ` ${vDir1} + ${vDir2} =`, inBetweenDir.toString());
 ```
+
+
 
 ### Reference Frame Transformations
 
 ```typescript
-import { Frame, Point, UnitVector } from '@micurs/ts-geopro';
-
-// Create a camera-style reference frame
-const eye = new Point(0, 0, 5);
-const target = new Point(0, 0, 0);
-const up = UnitVector.fromValues(0, 1, 0);
-const cameraFrame = Frame.lookAt(eye, target, up);
-
-// Transform points between frames
-const worldPoint = new Point(1, 1, 1);
-const localPoint = worldPoint.relative(cameraFrame);
 ```
 
 ### Geometric Transformations
 
 ```typescript
-import { Frame, Point, Transform } from '@micurs/ts-geopro';
-
-// Create a rotation frame
-const origin = new Point(0, 0, 0);
-const rotationFrame = Frame.rotationZ(origin, Math.PI/4); // 45 degrees
-
-// Convert frame to transform
-const transform = rotationFrame.toTransform();
 ```
 
 ## Development

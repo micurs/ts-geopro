@@ -97,7 +97,7 @@ export class Vector implements HomogeneousCoords, Addable {
   //#endregion Static builders
 
   toString(): string {
-    return `Vector(${this.x}, ${this.y}, ${this.z})`;
+    return `Vector: [${this.x}, ${this.y}, ${this.z}]`;
   }
 
   map(t: Transform | Frame): Vector {
