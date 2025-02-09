@@ -13,6 +13,14 @@ describe('Point basic operations', () => {
     expect(p.isPoint()).toBe(true);
   });
 
+  test('Set a point with vec4', () => {
+    const v4 = vec4.fromValues(10, 20, 15, 1);
+    const p = Point.from(v4);
+    expect(p.x).toBe(10);
+    expect(p.y).toBe(20);
+    expect(p.z).toBe(15);
+  });
+
   test('Set a point with coordinates', () => {
     const v3 = vec3.fromValues(10, 20, 15);
     const v4 = vec4.fromValues(10, 20, 15, 1);

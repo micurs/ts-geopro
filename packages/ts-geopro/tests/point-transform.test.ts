@@ -29,7 +29,7 @@ describe('Transform points', () =>{
 
   test('Transform a point with a translation', () => {
     const p = Point.fromValues(10, 20, 15);
-    const t1 = Transform.translation(10, 20, 30);
+    const t1 = Transform.fromTranslation(10, 20, 30);
     const t2 = Transform.invert(t1);
     const p1 = p.map(t1);
     const p2 = p.map(t2);
@@ -43,7 +43,7 @@ describe('Transform points', () =>{
 
   test('Transform a point with a rotation X', () => {
     const p = Point.fromValues(0, 1, 0);
-    const t1 = Transform.rotationX(Math.PI/2);
+    const t1 = Transform.fromRotationX(Math.PI / 2);
     const t2 = Transform.invert(t1);
     const p1 = p.map(t1);
     const p2 = p.map(t2);
@@ -62,7 +62,7 @@ describe('Transform points', () =>{
 
   test('transform a point with a rotation on Y', () => {
     const p = Point.fromValues(1, 0, 0);
-    const t1 = Transform.rotationY(Math.PI/2);
+    const t1 = Transform.fromRotationY(Math.PI / 2);
     const t2 = Transform.invert(t1);
     const p1 = p.map(t1);
     const p2 = p.map(t2);
@@ -81,7 +81,7 @@ describe('Transform points', () =>{
 
   test('transform a point with a rotation on Z', () => {
     const p = Point.fromValues(1, 0, 0);
-    const t1 = Transform.rotationZ(Math.PI/2);
+    const t1 = Transform.fromRotationZ(Math.PI / 2);
     const t2 = Transform.invert(t1);
     const p1 = p.map(t1);
     const p2 = p.map(t2);
@@ -100,7 +100,7 @@ describe('Transform points', () =>{
 
   test('transform a point with a scale', () => {
     const p = Point.fromValues(1, 3, 2);
-    const t1 = Transform.scale(2, 3, 4);
+    const t1 = Transform.fromScale(2, 3, 4);
     const t2 = Transform.invert(t1);
     const p1 = p.map(t1);
     const p2 = p.map(t2);
@@ -115,6 +115,6 @@ describe('Transform points', () =>{
     expect(round(p0.x, precision)).toBe(1);
     expect(round(p0.y, precision)).toBe(3);
     expect(round(p0.z, precision)).toBe(2);
-  })
+  });
 
 });

@@ -2,23 +2,44 @@ import { vec3, vec4 } from "gl-matrix";
 import { Transform } from "./transform.ts";
 import { Frame } from "./frame.ts";
 import { Point } from "./point.ts";
+import { isVec3, isVec4 } from './operations.ts';
 
-import type { VecEntries } from "./types.ts";
+import type { Addable, HomogeneousCoords, VecEntries } from './types.ts';
+import type { UnitVector } from './unit-vector.ts';
 
-export class Vector {
+export class Vector implements HomogeneousCoords, Addable {
   private _coord: vec4;
 
   private constructor() {
     this._coord = vec4.fromValues(0, 0, 0, 0);
   }
 
-  static get bufferSize(): number {
-    return 4 * 4;
+  get isVector() {
+    return true;
+  }
+
+  // static get bufferSize(): number {
+  //   return 4 * 4;
+  // }
+
+  static from(x: Point): Vector;
+  static from(x: vec4): Vector;
+  static from(x: vec3): Vector;
+  static from(x: number, y: number, z: number): Vector;
+  static from(x: number | vec4 | vec3 | Point, y?: number, z?: number): Vector {
+    if (isVec3(x)) {
+      return Vector.fromVec3(x);
+    } else if (isVec4(x)) {
+      return Vector.fromVec4(x);
+    } else if (x instanceof Point) {
+      return Vector.fromPoint(x);
+    }
+    return Vector.fromValues(x, y!, z!);
   }
 
   static fromValues(x: number, y: number, z: number): Vector {
     const v = new Vector();
-    v._coord = vec4.fromValues(x, y, z, 0);
+    v._coord = vec4.fromValues(x, y, z, 0.0);
     return v;
   }
 
@@ -33,6 +54,12 @@ export class Vector {
     const p = new Vector();
     p._coord = vec4.fromValues(v[0], v[1], v[2], 0.0);
     return p;
+  }
+
+  static fromUnitAndLength(u: UnitVector, l: number) {
+    const v = new Vector();
+    vec4.scale(v._coord, u.vec4(), l);
+    return v;
   }
 
   /**
@@ -75,21 +102,13 @@ export class Vector {
 
   map(t: Transform | Frame): Vector {
     const p = new Vector();
-    if (t.isFrame()) {
-      vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
-    } else {
-      vec4.transformMat4(p._coord, this._coord, t.directMatrix);
-    }
+    vec4.transformMat4(p._coord, this._coord, t.directMatrix);
     return p;
   }
 
   unMap(t: Transform | Frame): Vector {
     const p = new Vector();
-    if (t.isFrame()) {
-      vec4.transformMat4(p._coord, this._coord, t.directMatrix);
-    } else {
-      vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
-    }
+    vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
     return p;
   }
 
@@ -111,16 +130,31 @@ export class Vector {
     return v;
   };
 
+  /**
+   * Compute the dot product of this vector with another vector
+   * @param v - the other vector
+   * @returns a scalar
+   */
   dot = (v: Vector): number => {
     return vec3.dot(this.vec3(), v.vec3());
   };
 
+  /**
+   * Compute the cross product of this vector with another vector
+   * @param v2 - the other vector
+   * @returns
+   */
   crossProduct = (v2: Vector): Vector => {
     const res = vec3.create();
     vec3.cross(res, this.vec3(), v2.vec3());
     return Vector.fromVec3(res);
   };
 
+  /**
+   * Add two vectors
+   * @param v - the other vector
+   * @returns this vector plus the other vector
+   */
   add = (v: Vector): Vector => {
     const res = new Vector();
     vec4.add(res._coord, this._coord, v._coord);
@@ -137,7 +171,7 @@ export class Vector {
     return res;
   };
 
-  isUnitVector() {
+  get isUnitVector() {
     return false;
   }
 
