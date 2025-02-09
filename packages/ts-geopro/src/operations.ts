@@ -9,11 +9,11 @@ import { Vector } from './vector.ts';
 export type Mappable = Vector | Point | UnitVector;
 
 export const isVec4 = (v: unknown): v is vec4 => {
-  return v.length === 4;
+  return (v as vec4)?.length === 4;
 };
 
 export const isVec3 = (v: unknown): v is vec3 => {
-  return v.length === 3;
+  return (v as vec4)?.length === 3;
 };
 
 export const isFrame = (d: unknown): d is Frame => {
