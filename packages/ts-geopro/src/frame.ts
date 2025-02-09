@@ -49,6 +49,7 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
   }
 
   //#region Static builders
+
   static world() {
     const f = new Frame();
     return f;

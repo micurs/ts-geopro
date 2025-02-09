@@ -13,6 +13,8 @@ export class Ray {
     this._direction = UnitVector.fromValues(1, 0, 0);
   }
 
+  //#region Static builders
+
   static fromPoints(o: Point, d: Point): Ray {
     const r = new Ray();
     r._origin = o;
@@ -26,6 +28,8 @@ export class Ray {
     r._direction = UnitVector.fromVector(d);
     return r;
   }
+
+  //#endregion Static builders
 
   get o(): Point {
     return this._origin;

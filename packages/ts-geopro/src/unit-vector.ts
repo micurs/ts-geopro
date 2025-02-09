@@ -13,6 +13,8 @@ export class UnitVector implements HomogeneousCoords {
     this._coord = vec4.fromValues(1.0, 1.0, 1.0, 0.0);
   }
 
+  //#region Static builders
+
   static fromVector(v: Vector) {
     const uv = new UnitVector();
     uv._coord = vec4.fromValues(v.x, v.y, v.z, 0);
@@ -27,7 +29,7 @@ export class UnitVector implements HomogeneousCoords {
     return uv;
   }
 
-  fromPoint(p: Point) {
+  static fromPoint(p: Point) {
     const uv = UnitVector.fromValues(...p.triplet);
     return uv;
   }
@@ -64,6 +66,8 @@ export class UnitVector implements HomogeneousCoords {
     vec4.normalize(p._coord, p._coord);
     return p;
   }
+
+  //#endregion Static builders
 
   toString() {
     return `UnitVector(${this.x}, ${this.y}, ${this.z})`;

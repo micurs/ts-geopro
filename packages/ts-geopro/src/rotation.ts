@@ -10,6 +10,8 @@ export class Rotation {
     this._inverse = quat.create();
   }
 
+  //#region Static builders
+
   static identity() {
     const r = new Rotation();
     return r;
@@ -69,6 +71,8 @@ export class Rotation {
     quat.invert(r._inverse, r._direct);
     return r;
   }
+
+  //#endregion
 
   rotateX(a: number): Rotation {
     return this.compose(Rotation.rotationX(a));

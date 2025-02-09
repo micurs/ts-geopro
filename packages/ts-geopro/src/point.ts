@@ -14,6 +14,8 @@ export class Point implements HomogeneousCoords {
     this._coord = vec4.fromValues(0, 0, 0, 1);
   }
 
+  //#region Static builders
+
   static origin() {
     const p = new Point();
     return p;
@@ -61,6 +63,8 @@ export class Point implements HomogeneousCoords {
     p._coord = vec4.fromValues(v[0], v[1], v[2], 1.0);
     return p;
   }
+
+  //#endregion Static builders
 
   toString() {
     return `Point(${this.x}, ${this.y}, ${this.z})`;

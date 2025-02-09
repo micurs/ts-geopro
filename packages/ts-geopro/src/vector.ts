@@ -18,6 +18,8 @@ export class Vector implements HomogeneousCoords, Addable {
     return true;
   }
 
+  //#region Static builders
+
   static from(x: Point): Vector;
   static from(x: vec4): Vector;
   static from(x: vec3): Vector;
@@ -91,6 +93,8 @@ export class Vector implements HomogeneousCoords, Addable {
   static dot = (v1: Vector, v2: Vector): number => {
     return vec3.dot(v1.vec3(), v2.vec3());
   };
+
+  //#endregion Static builders
 
   toString() {
     return `Vector(${this.x}, ${this.y}, ${this.z})`;
