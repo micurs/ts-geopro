@@ -46,7 +46,7 @@ describe('Vector basic operations', () => {
 
   test('Get a String from a UnitVector', () => {
     const v = Vector.fromValues(10, 20, 15);
-    expect(v.toString()).toEqual('Vector(10, 20, 15)');
+    expect(v.toString()).toEqual('Vector: [10, 20, 15]');
   });
 
   test('Get the vector length', () => {

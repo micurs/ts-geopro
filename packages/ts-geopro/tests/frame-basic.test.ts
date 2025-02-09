@@ -439,7 +439,9 @@ describe('Frame basic operations', () => {
     const f = Frame.from2Vectors(o, v1, v2);
 
     const str = f.toString();
-    expect(str).toBe('frame: { o: Point(10, 10, 10), i: UnitVector(1, 0, 0), j: UnitVector(0, 1, 0), k: UnitVector(0, 0, 1) }');
+    expect(str).toBe(
+      'Frame: { o: {Point: [10, 10, 10]}, i: {UnitVector: [1, 0, 0]}, j: {UnitVector: [0, 1, 0]}, k: {UnitVector: [0, 0, 1]} }'
+    );
   });
 });
 
