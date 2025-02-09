@@ -6,4 +6,4 @@ const p2 = Point.from(2, 3, 8);
 
 const v = Vector.fromPoints(p1, p2);
 
-console.log(v);
+console.log(v.toString());
