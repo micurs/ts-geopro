@@ -2,17 +2,17 @@ import type { vec4, vec3 } from 'gl-matrix';
 import { Frame } from './frame.ts';
 import { Point } from './point.ts';
 import { Transform } from './transform.ts';
-import type { Addable, AffineGeoMatrix, GeoMatrix, HomogeneousCoords } from './types.ts';
+import type { Addable, GeoMatrix, HomogeneousCoords } from './types.ts';
 import { UnitVector } from './unit-vector.ts';
 import { Vector } from './vector.ts';
 
 export type Mappable = Vector | Point | UnitVector;
 
-export const isVec4 = (v: any): v is vec4 => {
+export const isVec4 = (v: unknown): v is vec4 => {
   return v.length === 4;
 };
 
-export const isVec3 = (v: any): v is vec3 => {
+export const isVec3 = (v: unknown): v is vec3 => {
   return v.length === 3;
 };
 
@@ -28,9 +28,11 @@ export const isUnitVector = (d: unknown): d is UnitVector => {
   return d && (d as UnitVector).isUnitVector !== undefined ? true : false;
 };
 
-export const map = (t: GeoMatrix) => (o: HomogeneousCoords) => {
-  return o.map(t);
-};
+export const map =
+  (t: GeoMatrix) =>
+  (o: HomogeneousCoords): HomogeneousCoords => {
+    return o.map(t);
+  };
 
 export type Composable = Frame | Transform;
 

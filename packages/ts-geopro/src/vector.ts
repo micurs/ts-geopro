@@ -14,7 +14,7 @@ export class Vector implements HomogeneousCoords, Addable {
     this._coord = vec4.fromValues(0, 0, 0, 0);
   }
 
-  get isVector() {
+  get isVector(): boolean {
     return true;
   }
 
@@ -41,20 +41,20 @@ export class Vector implements HomogeneousCoords, Addable {
     return v;
   }
 
-  static fromVec4(v: vec4) {
+  static fromVec4(v: vec4): Vector {
     const p = new Vector();
     const w = v[3] !== 0 ? v[3] : 1.0;
     p._coord = vec4.fromValues(v[0] / w, v[1] / w, v[2] / w, 0.0);
     return p;
   }
 
-  static fromVec3(v: vec3) {
+  static fromVec3(v: vec3): Vector {
     const p = new Vector();
     p._coord = vec4.fromValues(v[0], v[1], v[2], 0.0);
     return p;
   }
 
-  static fromUnitAndLength(u: UnitVector, l: number) {
+  static fromUnitAndLength(u: UnitVector, l: number): Vector {
     const v = new Vector();
     vec4.scale(v._coord, u.vec4(), l);
     return v;
@@ -66,13 +66,13 @@ export class Vector implements HomogeneousCoords, Addable {
    * @param p2
    * @returns
    */
-  static fromPoints(p1: Point, p2: Point) {
+  static fromPoints(p1: Point, p2: Point): Vector {
     const v = new Vector();
     vec4.subtract(v._coord, p1.vec4(), p2.vec4());
     return v;
   }
 
-  static fromPoint(p: Point) {
+  static fromPoint(p: Point): Vector {
     const v = new Vector();
     v._coord = [...p.triplet, 0.0];
     return v;
@@ -96,7 +96,7 @@ export class Vector implements HomogeneousCoords, Addable {
 
   //#endregion Static builders
 
-  toString() {
+  toString(): string {
     return `Vector(${this.x}, ${this.y}, ${this.z})`;
   }
 
@@ -124,7 +124,7 @@ export class Vector implements HomogeneousCoords, Addable {
    * Return a new vector by multiplying this one by a scalar
    * @param s - the multiplier
    */
-  scale = (s: number) => {
+  scale = (s: number): Vector => {
     const v = new Vector();
     vec4.scale(v._coord, this._coord, s);
     return v;
@@ -171,7 +171,7 @@ export class Vector implements HomogeneousCoords, Addable {
     return res;
   };
 
-  get isUnitVector() {
+  get isUnitVector(): boolean {
     return false;
   }
 
@@ -185,14 +185,14 @@ export class Vector implements HomogeneousCoords, Addable {
   /**
    * Get component along the Y axis
    */
-  get y() {
+  get y(): number {
     return this._coord[1];
   }
 
   /**
    * Get component along the Z axis
    */
-  get z() {
+  get z(): number {
     return this._coord[2];
   }
 
@@ -207,14 +207,14 @@ export class Vector implements HomogeneousCoords, Addable {
     return [...this._coord.values()] as VecEntries;
   }
 
-  get length() {
+  get length(): number {
     const x = this._coord[0];
     const y = this._coord[1];
     const z = this._coord[2];
     return Math.sqrt(x * x + y * y + z * z);
   }
 
-  get lengthSquare() {
+  get lengthSquare(): number {
     const x = this._coord[0];
     const y = this._coord[1];
     const z = this._coord[2];

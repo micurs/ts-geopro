@@ -1,5 +1,4 @@
-import { Frame } from "./frame.ts";
-import { isUnitVector } from './operations.ts';
+import { Frame } from './frame.ts';
 import { Point } from './point.ts';
 import { UnitVector } from './unit-vector.ts';
 import { Vector } from './vector.ts';

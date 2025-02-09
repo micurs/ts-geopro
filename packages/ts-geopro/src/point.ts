@@ -5,7 +5,7 @@ import { Transform } from './transform.ts';
 import { UnitVector } from './unit-vector.ts';
 
 import type { GeoMatrix, HomogeneousCoords, VecEntries } from './types.ts';
-import { isFrame, isUnitVector, isVec4, isVector } from './operations.ts';
+import { isUnitVector, isVec4, isVector } from './operations.ts';
 
 export class Point implements HomogeneousCoords {
   private _coord: vec4;
@@ -16,7 +16,7 @@ export class Point implements HomogeneousCoords {
 
   //#region Static builders
 
-  static origin() {
+  static origin(): Point {
     const p = new Point();
     return p;
   }
@@ -30,7 +30,7 @@ export class Point implements HomogeneousCoords {
   static from(v: vec4): Point;
   static from(v: Vector | UnitVector): Point;
   static from(x: number, y: number, z: number, w?: number): Point;
-  static from(x: number | vec4 | Vector | UnitVector, y?: number, z?: number, w = 1.0): Point {
+  static from(x: number | vec4 | Vector | UnitVector, y?: number, z?: number): Point {
     if (isVec4(x)) {
       return Point.fromVec4(x);
     } else if (isVector(x) || isUnitVector(x)) {
@@ -45,20 +45,20 @@ export class Point implements HomogeneousCoords {
     return p;
   }
 
-  static fromVector(v: Vector | UnitVector) {
+  static fromVector(v: Vector | UnitVector): Point {
     const p = new Point();
     p._coord = vec4.fromValues(v.x, v.y, v.z, 1.0);
     return p;
   }
 
-  static fromVec4(v: vec4) {
+  static fromVec4(v: vec4): Point {
     const p = new Point();
     const w = v[3] !== 0 ? v[3] : 1.0;
     p._coord = vec4.fromValues(v[0] / w, v[1] / w, v[2] / w, 1.0);
     return p;
   }
 
-  static fromVec3(v: vec3) {
+  static fromVec3(v: vec3): Point {
     const p = new Point();
     p._coord = vec4.fromValues(v[0], v[1], v[2], 1.0);
     return p;
@@ -66,7 +66,7 @@ export class Point implements HomogeneousCoords {
 
   //#endregion Static builders
 
-  toString() {
+  toString(): string {
     return `Point(${this.x}, ${this.y}, ${this.z})`;
   }
 
@@ -135,17 +135,17 @@ export class Point implements HomogeneousCoords {
     return p;
   }
 
-  isPoint() {
+  isPoint(): boolean {
     return true;
   }
 
-  get x() {
+  get x(): number {
     return this._coord[0];
   }
-  get y() {
+  get y(): number {
     return this._coord[1];
   }
-  get z() {
+  get z(): number {
     return this._coord[2];
   }
 

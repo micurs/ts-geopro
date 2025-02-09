@@ -1,6 +1,6 @@
-import { describe, test, expect, it } from 'vitest';
+import { describe, test, expect } from 'vitest';
 
-import { Point, Frame, UnitVector, Vector, deg2rad, round, rad2deg, isFrame, Ray, add, map, Transform, Rotation } from '../src';
+import { Point, Frame, UnitVector, Vector, deg2rad, round, rad2deg, isFrame, Ray, add, Transform, Rotation } from '../src';
 import { mat4 } from 'gl-matrix';
 
 describe('Frame basic operations', () => {
@@ -272,7 +272,6 @@ describe('Frame basic operations', () => {
   });
 
   test('Compute a reference frame rotate 90 degrees around the X axis', () => {
-    const o = Point.from(0, 1, 0);
     const f = Frame.from(
       Transform.fromRotoTranslation(
         //
@@ -291,7 +290,6 @@ describe('Frame basic operations', () => {
   });
 
   test('Compute a reference frame rotate 90 degrees around the Y axis', () => {
-    const o = Point.from(-1, 0, 0);
     const f = Frame.from(
       Transform.fromRotoTranslation(
         //
@@ -351,7 +349,6 @@ describe('Frame basic operations', () => {
   });
 
   test('Compute 2 frames - rotX - and compose them into a third one', () => {
-    const o1 = Point.from(1, 1, 1);
     const f1 = Frame.from(
       Transform.fromRotoTranslation(
         //

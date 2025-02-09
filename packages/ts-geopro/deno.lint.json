@@ -1,0 +1,17 @@
+{
+  "lint": {
+    "rules": {
+      "include": [
+        "ban-ts-comment",
+        "getter-return",
+        "no-async-promise-executor",
+        "no-await-in-sync-fn",
+        "no-case-declarations",
+        "no-class-assign",
+        "no-debugger",
+        "valid-typeof",
+        "explicit-function-return-type"
+      ]
+    }
+  }
+}
