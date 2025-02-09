@@ -1,24 +1,17 @@
 import { vec3, vec4 } from "gl-matrix";
 import { Vector } from "./vector.ts";
 import { Frame } from "./frame.ts";
+import { Transform } from './transform.ts';
 import { UnitVector } from './unit-vector.ts';
 
-import type { VecEntries } from "./types.ts";
-import type { GeoMap } from "./operations.ts";
+import type { GeoMatrix, HomogeneousCoords, VecEntries } from './types.ts';
+import { isFrame, isUnitVector, isVec4, isVector } from './operations.ts';
 
-const isVec4 = (v: any): v is vec4 => {
-  return v.length === 4;
-}
-
-export class Point {
+export class Point implements HomogeneousCoords {
   private _coord: vec4;
 
   private constructor() {
     this._coord = vec4.fromValues(0, 0, 0, 1);
-  }
-
-  static get bufferSize(): number {
-    return 4 * 4;
   }
 
   static origin() {
@@ -33,14 +26,15 @@ export class Point {
    * @returns a new Point
    */
   static from(v: vec4): Point;
+  static from(v: Vector | UnitVector): Point;
   static from(x: number, y: number, z: number, w?: number): Point;
-  static from(x: number | vec4, y?: number, z?: number, w = 1.0): Point {
+  static from(x: number | vec4 | Vector | UnitVector, y?: number, z?: number, w = 1.0): Point {
     if (isVec4(x)) {
       return Point.fromVec4(x);
-    } else if (typeof y === 'number' && typeof z === 'number') {
-      return Point.fromValues(x, y, z);
+    } else if (isVector(x) || isUnitVector(x)) {
+      return Point.fromVector(x);
     }
-    throw new Error('Invalid arguments');
+    return Point.fromValues(x, y!, z!);
   }
 
   static fromValues(x: number, y: number, z: number): Point {
@@ -79,13 +73,9 @@ export class Point {
    * @param t - transformation or reference frame
    * @returns a new Point
    */
-  map(t: GeoMap): Point {
+  map(t: GeoMatrix): Point {
     const p = new Point();
-    if (t.isFrame()) {
-      vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
-    } else {
-      vec4.transformMat4(p._coord, this._coord, t.directMatrix);
-    }
+    vec4.transformMat4(p._coord, this._coord, t.directMatrix);
     return p;
   }
 
@@ -96,18 +86,14 @@ export class Point {
    * @param t - Transform or Frame
    * @returns a new Point
    */
-  unMap(t: GeoMap): Point {
+  unMap(t: Transform | Frame): Point {
     const p = new Point();
-    if (t.isFrame()) {
-      vec4.transformMat4(p._coord, this._coord, t.directMatrix);
-    } else {
-      vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
-    }
+    vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
     return p;
   }
 
   relative(f: Frame): Point {
-    return this.map(f);
+    return this.unMap(f);
   }
 
   /**
@@ -116,15 +102,15 @@ export class Point {
    * @returns a new Point in world coordinate
    */
   absolute(f: Frame): Point {
-    return this.unMap(f);
+    return this.map(f);
   }
 
   static relative(p: Point, f: Frame): Point {
-    return p.map(f);
+    return p.unMap(f);
   }
 
   static absolute(p: Point, f: Frame): Point {
-    return p.unMap(f);
+    return p.map(f);
   }
 
   subtract(p: Point): Vector {
@@ -167,15 +153,19 @@ export class Point {
     return [this.x, this.y, this.z];
   }
 
-  buffer(): ArrayBuffer {
-    return new Float32Array(this.coordinates);
-  }
-
   vec3(): Readonly<vec3> {
     return vec3.fromValues(this.x, this.y, this.z);
   }
 
   vec4(): Readonly<vec4> {
     return vec4.fromValues(this.x, this.y, this.z, 1.0);
+  }
+
+  static get Float32Size(): number {
+    return 4 * 4;
+  }
+
+  get asFloat32Array(): ArrayBuffer {
+    return new Float32Array(this.coordinates);
   }
 }

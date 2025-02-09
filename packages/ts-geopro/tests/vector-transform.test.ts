@@ -24,7 +24,7 @@ describe('Transform vector', () =>{
 
   test('Transform a vector with a rotation on X', () => {
     const v = Vector.fromValues(0, 10, 0);
-    const t1 = Transform.rotationX(Math.PI / 2);
+    const t1 = Transform.fromRotationX(Math.PI / 2);
     const t2 = Transform.invert(t1);
     const v1 = v.map(t1);
     const v2 = v.unMap(t1);
@@ -42,7 +42,7 @@ describe('Transform vector', () =>{
 
   test('Transform a vector with a rotation on Y', () => {
     const v = Vector.fromValues(10, 0, 0);
-    const t1 = Transform.rotationY(Math.PI / 2);
+    const t1 = Transform.fromRotationY(Math.PI / 2);
     const t2 = Transform.invert(t1);
     const v1 = v.map(t1);
     const v2 = v.map(t2);
@@ -56,7 +56,7 @@ describe('Transform vector', () =>{
 
   test('Transform a vector with a rotation on Z', () => {
     const v = Vector.fromValues(0, 10, 0);
-    const t1 = Transform.rotationZ(Math.PI / 2);
+    const t1 = Transform.fromRotationZ(Math.PI / 2);
     const t2 = Transform.invert(t1);
     const v1 = v.map(t1);
     const v2 = v.map(t2);
@@ -70,7 +70,7 @@ describe('Transform vector', () =>{
 
   test('Transform a vector with a scale', () => {
     const v = Vector.fromValues(10, 20, 15);
-    const t1 = Transform.scale(5, 4, 3);
+    const t1 = Transform.fromScale(5, 4, 3);
     const t2 = Transform.invert(t1);
     const v1 = v.map(t1);
     const v2 = v.map(t2);
@@ -84,7 +84,7 @@ describe('Transform vector', () =>{
 
   test('Transform a vector with a translation has no effect (vectors are not translatable)', () => {
     const v = Vector.fromValues(10, 20, 15);
-    const t1 = Transform.translation(10, 2, 6);
+    const t1 = Transform.fromTranslation(10, 2, 6);
     const t2 = Transform.invert(t1);
     const v1 = v.map(t1);
     const v2 = v.map(t2);

@@ -4,17 +4,13 @@ import { Transform } from "./transform.ts";
 import { Frame } from "./frame.ts";
 import { Point } from './point.ts';
 
-import type { VecEntries } from "./types.ts";
+import type { HomogeneousCoords, VecEntries } from './types.ts';
 
-export class UnitVector {
+export class UnitVector implements HomogeneousCoords {
   private _coord: vec4;
 
   private constructor() {
     this._coord = vec4.fromValues(1.0, 1.0, 1.0, 0.0);
-  }
-
-  static get bufferSize(): number {
-    return 4 * 4;
   }
 
   static fromVector(v: Vector) {
@@ -75,22 +71,14 @@ export class UnitVector {
 
   map(t: Transform | Frame): UnitVector {
     const p = new UnitVector();
-    if (t.isFrame()) {
-      vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
-    } else {
-      vec4.transformMat4(p._coord, this._coord, t.directMatrix);
-    }
+    vec4.transformMat4(p._coord, this._coord, t.directMatrix);
     vec4.normalize(p._coord, p._coord);
     return p;
   }
 
   unMap(t: Transform | Frame): UnitVector {
     const p = new UnitVector();
-    if (t.isFrame()) {
-      vec4.transformMat4(p._coord, this._coord, t.directMatrix);
-    } else {
-      vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
-    }
+    vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
     vec4.normalize(p._coord, p._coord);
     return p;
   }
@@ -109,13 +97,13 @@ export class UnitVector {
     return p;
   }
 
-  scale(s: number): Vector {
-    return Vector.fromValues(this.x * s, this.y * s, this.z * s);
-  }
+  // scale(s: number): Vector {
+  //   return Vector.fromValues(this.x * s, this.y * s, this.z * s);
+  // }
 
-  add(v: Vector | UnitVector): Vector {
-    return Vector.fromValues(this.x + v.x, this.y + v.y, this.z + v.z);
-  }
+  // add(v: Vector | UnitVector): Vector {
+  //   return Vector.fromValues(this.x + v.x, this.y + v.y, this.z + v.z);
+  // }
 
   /**
    * return tru if the object is a UnitVector
@@ -162,15 +150,19 @@ export class UnitVector {
     return v.crossProduct(v2 as Vector);
   }
 
-  buffer(): ArrayBuffer {
-    return new Float32Array(this.coordinates);
-  }
-
   vec3(): Readonly<vec3> {
     return vec3.fromValues(this.x, this.y, this.z);
   }
-}
 
-export const isUnitVector = (v: Vector | UnitVector): v is UnitVector => {
-  return v.isUnitVector();
+  vec4(): Readonly<vec4> {
+    return this._coord;
+  }
+
+  static get Float32Size(): number {
+    return 4 * 4;
+  }
+
+  get asFloat32Array(): ArrayBuffer {
+    return new Float32Array(this.coordinates);
+  }
 }

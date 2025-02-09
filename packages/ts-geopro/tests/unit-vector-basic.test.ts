@@ -63,3 +63,15 @@ describe('UnitVector basic operations', () => {
   });
 
 });
+
+
+describe('UnitVector operations', () => {
+  test('cross-product of two unit vectors', () => {
+    const v1 = UnitVector.fromValues(1, 0, 0);
+    const v2 = UnitVector.fromValues(0, 1, 0);
+    const v3 = UnitVector.crossProduct(v1, v2);
+    expect(v3.x).toBe(0);
+    expect(v3.y).toBe(0);
+    expect(v3.z).toBe(1);
+  });
+});

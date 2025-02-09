@@ -1,9 +1,8 @@
 import { Frame } from "./frame.ts";
+import { isUnitVector } from './operations.ts';
 import { Point } from './point.ts';
-import { UnitVector, isUnitVector } from "./unit-vector.ts";
-import { Vector } from "./vector.ts";
-
-
+import { UnitVector } from './unit-vector.ts';
+import { Vector } from './vector.ts';
 
 export class Ray {
   private _origin: Point;
@@ -21,10 +20,10 @@ export class Ray {
     return r;
   }
 
-  static fromPointAndVector(o: Point, d: Vector | UnitVector): Ray {
+  static fromPointAndVector(o: Point, d: Vector): Ray {
     const r = new Ray();
     r._origin = o;
-    r._direction = isUnitVector(d) ? d : UnitVector.fromVector(d);
+    r._direction = UnitVector.fromVector(d);
     return r;
   }
 
@@ -57,5 +56,4 @@ export class Ray {
     rw._direction = this._direction.absolute(f);
     return rw;
   }
-
 }

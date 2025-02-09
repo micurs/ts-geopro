@@ -1,12 +1,11 @@
-import { mat4, vec3 } from 'gl-matrix';
+import { mat4, vec3, type ReadonlyMat4 } from 'gl-matrix';
 import { Point } from './point.ts';
 import { UnitVector } from './unit-vector.ts';
 import { Vector } from './vector.ts';
 import { Rotation } from './rotation.ts';
+import type { AffineGeoMatrix, Col, GeoMatrix, InvertibleGroMatrix, Row } from './types.ts';
 
-import type { GeoMap } from './operations.ts';
-
-export class Transform {
+export class Transform implements GeoMatrix, InvertibleGroMatrix {
   _direct: mat4;
   _inverse: mat4;
   _isIdentity: boolean = true;
@@ -15,17 +14,42 @@ export class Transform {
     this._direct = mat4.create();
     this._inverse = mat4.create();
     mat4.invert(this._inverse, this._direct);
+    this._isIdentity = true;
   }
 
-  static get bufferSize(): number {
-    return 16 * 4;
+  //#region Basic accessors
+
+  direct(row: Row, col: Col): number {
+    return this._direct[4 * row + col]!;
   }
 
-  static world() {
-    const t = new Transform();
-    return t;
+  inverse(row: Row, col: Col): number {
+    return this._inverse[4 * row + col]!;
   }
 
+  get directMatrix(): mat4 {
+    return this._direct;
+  }
+  get inverseMatrix() {
+    return this._inverse;
+  }
+
+  // get values(): IterableIterator<number> {
+  //   return this._direct.values();
+  // }
+
+  // get inverseValues(): IterableIterator<number> {
+  //   return this._inverse.values();
+  // }
+
+  //#endregion
+
+  //#region Static builders
+
+  /**
+   * Create an identity transformation
+   * @returns a new identity transformation
+   */
   static identity() {
     const t = new Transform();
     return t;
@@ -60,13 +84,13 @@ export class Transform {
   /* c8 ignore stop */
 
   /* c8 ignore start */
-  static perspective(fovy: number, aspect: number, near: number, far: number) {
-    const t = new Transform();
-    mat4.perspective(t._direct, fovy, aspect, near, far);
-    mat4.invert(t._inverse, t._direct);
-    t._isIdentity = false;
-    return t;
-  }
+  // static perspective(fovy: number, aspect: number, near: number, far: number) {
+  //   const t = new Transform();
+  //   mat4.perspective(t._direct, fovy, aspect, near, far);
+  //   mat4.invert(t._inverse, t._direct);
+  //   t._isIdentity = false;
+  //   return t;
+  // }
   /* c8 ignore stop */
 
   static invert(s: Transform): Transform {
@@ -77,7 +101,7 @@ export class Transform {
     return t;
   }
 
-  static translation(tx: number, ty: number, tz: number) {
+  static fromTranslation(tx: number, ty: number, tz: number) {
     const t = new Transform();
     mat4.translate(t._direct, t._direct, [tx, ty, tz]);
     mat4.invert(t._inverse, t._direct);
@@ -85,7 +109,7 @@ export class Transform {
     return t;
   }
 
-  static move(mv: Vector) {
+  static fromMove(mv: Vector) {
     const t = new Transform();
     mat4.translate(t._direct, t._direct, mv.vec3());
     mat4.invert(t._inverse, t._direct);
@@ -93,7 +117,7 @@ export class Transform {
     return t;
   }
 
-  static rotationX(a: number) {
+  static fromRotationX(a: number) {
     const t = new Transform();
     mat4.rotateX(t._direct, t._direct, a);
     mat4.invert(t._inverse, t._direct);
@@ -101,7 +125,7 @@ export class Transform {
     return t;
   }
 
-  static rotationY(a: number) {
+  static fromRotationY(a: number) {
     const t = new Transform();
     mat4.rotateY(t._direct, t._direct, a);
     mat4.invert(t._inverse, t._direct);
@@ -109,7 +133,7 @@ export class Transform {
     return t;
   }
 
-  static rotationZ(a: number) {
+  static fromRotationZ(a: number) {
     const t = new Transform();
     mat4.rotateZ(t._direct, t._direct, a);
     mat4.invert(t._inverse, t._direct);
@@ -117,7 +141,7 @@ export class Transform {
     return t;
   }
 
-  static scale(tx: number, ty: number, tz: number) {
+  static fromScale(tx: number, ty: number, tz: number) {
     const t = new Transform();
     mat4.scale(t._direct, t._direct, [tx, ty, tz]);
     mat4.invert(t._inverse, t._direct);
@@ -127,11 +151,11 @@ export class Transform {
 
   /**
    * Create a transform that represents a rotation and then a
-   * translation to a given position
+   * translation transformation, in that order
    * @param rot - the rotation
    * @param mv - the translation
    */
-  static rotoTranslation(rot: Rotation, mv: Vector) {
+  static fromRotoTranslation(rot: Rotation, mv: Vector) {
     const t = new Transform();
     mat4.fromRotationTranslation(t._direct, rot.quat, mv.vec3());
     mat4.invert(t._inverse, t._direct);
@@ -139,13 +163,29 @@ export class Transform {
     return t;
   }
 
-  static fromRotationTranslationScale(rot: Rotation, mv: Vector, scale: Vector) {
+  /**
+   * Create a transform that represents a rotation and then a
+   * translation and a final scale transformation, in that order
+   * @param rot - the rotation
+   * @param mv - the translation
+   * @param scale - the scale
+   * @returns a full transformation that represents the rotation, translation and scale
+   */
+  static fromRotOTranslationScale(rot: Rotation, mv: Vector, scale: Vector) {
     const t = new Transform();
     mat4.fromRotationTranslationScale(t._direct, rot.quat, mv.vec3(), scale.vec3());
     mat4.invert(t._inverse, t._direct);
     t._isIdentity = false;
     return t;
   }
+
+  static fromMatrices(inverse: ReadonlyMat4, direct: ReadonlyMat4) {
+    const f = new Transform();
+    f._direct = mat4.clone(direct);
+    f._inverse = mat4.clone(inverse);
+    return f;
+  }
+  //#endregion
 
   /**
    * Need to work on this
@@ -179,22 +219,6 @@ export class Transform {
     return false;
   }
 
-  get values(): IterableIterator<number> {
-    return this._direct.values();
-  }
-
-  get inverseValues(): IterableIterator<number> {
-    return this._inverse.values();
-  }
-
-  buffer(): ArrayBuffer {
-    return new Float32Array(this._direct.values());
-  }
-
-  inverseBuffer(): ArrayBuffer {
-    return new Float32Array(this._inverse.values());
-  }
-
   /**
    * Applies the transformation to a point
    * @param p - the point to transform
@@ -208,14 +232,14 @@ export class Transform {
    * That is: resM = t.M · this.M
    * @param t - the transformation to compose with
    */
-  compose(trans: GeoMap): Transform {
-    const t = new Transform();
-    const { _direct: dm1, _inverse: im1 } = this;
-    const { _direct: dm2, _inverse: im2 } = trans;
-    mat4.multiply(t._direct, dm2, dm1);
-    mat4.multiply(t._inverse, im1, im2);
-    t._isIdentity = false;
-    return t;
+  compose(trans: AffineGeoMatrix): AffineGeoMatrix {
+    const { directMatrix: dm1, inverseMatrix: im1 } = this;
+    const { directMatrix: dm2, inverseMatrix: im2 } = trans;
+    const direct = mat4.create();
+    const inverse = mat4.create();
+    mat4.multiply(direct, dm2, dm1);
+    mat4.multiply(inverse, im1, im2);
+    return Transform.fromMatrices(inverse, direct) as AffineGeoMatrix;
   }
 
   transpose() {
@@ -226,30 +250,30 @@ export class Transform {
     return t;
   }
 
-  translation(x: number, y: number, z: number) {
-    const t = Transform.translation(x, y, z);
-    return this.compose(t);
-  }
+  // translation(x: number, y: number, z: number) {
+  //   const t = Transform.fromTranslation(x, y, z);
+  //   return this.compose(t);
+  // }
 
-  rotationX(a: number) {
-    const t = Transform.rotationX(a);
-    return this.compose(t);
-  }
+  // rotationX(a: number) {
+  //   const t = Transform.fromRotationX(a);
+  //   return this.compose(t);
+  // }
 
-  rotationY(a: number) {
-    const t = Transform.rotationY(a);
-    return this.compose(t);
-  }
+  // rotationY(a: number) {
+  //   const t = Transform.fromRotationY(a);
+  //   return this.compose(t);
+  // }
 
-  rotationZ(a: number) {
-    const t = Transform.rotationZ(a);
-    return this.compose(t);
-  }
+  // rotationZ(a: number) {
+  //   const t = Transform.fromRotationZ(a);
+  //   return this.compose(t);
+  // }
 
-  scale(tx: number, ty: number, tz: number) {
-    const t = Transform.scale(tx, ty, tz);
-    return this.compose(t);
-  }
+  // scale(tx: number, ty: number, tz: number) {
+  //   const t = Transform.fromScale(tx, ty, tz);
+  //   return this.compose(t);
+  // }
 
   invert() {
     const t = new Transform();
@@ -259,15 +283,8 @@ export class Transform {
     return t;
   }
 
-  get directMatrix(): mat4 {
-    return this._direct;
-  }
-  get inverseMatrix() {
-    return this._inverse;
-  }
-
   get isIdentity() {
-    return this._isIdentity;
+    return this._isIdentity || mat4.equals(this._direct, this._inverse);
   }
 
   get scaleVector(): Vector {
@@ -283,5 +300,17 @@ export class Transform {
     const t = vec3.create();
     mat4.getTranslation(t, this._direct);
     return Vector.fromValues(t[0], t[1], t[2]);
+  }
+
+  static get Float32Size(): number {
+    return 16 * 4;
+  }
+
+  get asFloat32Array(): ArrayBuffer {
+    return new Float32Array(this._direct.values());
+  }
+
+  get inverseAsFloat32Array(): ArrayBuffer {
+    return new Float32Array(this._inverse.values());
   }
 }
