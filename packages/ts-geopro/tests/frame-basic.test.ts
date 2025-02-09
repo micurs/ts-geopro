@@ -39,6 +39,9 @@ describe('Frame basic operations', () => {
     expect(f.inverse(1, 1)).toBeCloseTo(idMat[5]);
     expect(f.inverse(2, 2)).toBeCloseTo(idMat[10]);
     expect(f.inverse(3, 3)).toBeCloseTo(idMat[15]);
+
+    expect(f.asFloat32Array.byteLength).toBe(Transform.Float32Size);
+
   });
 
   test('Create a frame from a point and two vectors', () => {

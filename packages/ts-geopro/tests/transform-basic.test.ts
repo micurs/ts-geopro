@@ -9,7 +9,7 @@ describe('Transform basic operations', () => {
     const p1 = Point.fromValues(10, 10, 10);
     const p2 = p1.map(idTrans);
     expect(p1.vec4()).toEqual(p2.vec4());
-    expect(idTrans.buffer().byteLength).toBe(16 * 4);
+    expect(idTrans.asFloat32Array.byteLength).toBe(Transform.Float32Size);
     expect(idTrans.isIdentity).toBe(true);
 
     const idMat = mat4.create();
@@ -37,7 +37,6 @@ describe('Transform basic operations', () => {
     const tp = t1.apply(p1);
     expect(tp.vec4()).toEqual(tv);
 
-    expect(t1.buffer().byteLength).toBe(16 * 4);
     expect(t1.isIdentity).toBe(false);
   });
 

@@ -2,5 +2,10 @@
   "name": "@micurs/ts-geopro",
   "version": "0.0.1",
   "exports": "./src/index.ts",
-  "license": "MIT"
+  "license": "MIT",
+  "publish": {
+    "exclude": [
+      "./tests/**"
+    ]
+  }
 }
