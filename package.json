@@ -1,14 +1,16 @@
 {
-	"private": true,
-	"devDependencies": {
-		"@total-typescript/tsconfig": "^1.0.4",
-		"turbo": "^2.4.0"
-	},
-	"scripts": {
-		"dev": "turbo run dev",
-		"build": "turbo run build",
-		"test": "turbo run test",
-		"cli-demos": "deno apps/cli-demos/point-vector.ts"
-	},
-	"packageManager": "pnpm@10.2.0"
+  "version": "0.0.3",
+  "private": true,
+  "devDependencies": {
+    "@total-typescript/tsconfig": "^1.0.4",
+    "turbo": "^2.4.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "cli-demos": "deno apps/cli-demos/point-vector.ts",
+    "version-update": "deno --allow-read --allow-write --allow-env scripts/update-versions.ts patch"
+  },
+  "packageManager": "pnpm@10.2.0"
 }

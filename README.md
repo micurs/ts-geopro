@@ -1,6 +1,6 @@
 # ts-geopro: 3D Geometric Programming Library
 
-A robust TypeScript library for 3D geometric computations and transformations, designed for precision and performance.
+A TypeScript library for 3D geometric computations and transformations, designed following the principles of Geometric Programming.
 
 ## Overview
 
@@ -39,11 +39,13 @@ ts-geopro provides a comprehensive set of tools for handling 3D geometric operat
 
 ## Installation
 
-```bash
-npm install @micurs/ts-geopro
-# or
-pnpm add @micurs/ts-geopro
-```
+Depending on your environment and package manager use one of the following:
+
+* npm: `npx jsr add @micurs/ts-geopro`
+* yarn `yarn dlx jsr add @micurs/ts-geopro`
+* pnpm: `pnpm dlx jsr add @micurs/ts-geopro`
+* deno: `deno add jsr:@micurs/ts-geopro`
+* bun `bunx jsr add @micurs/ts-geopro`
 
 ## Usage
 
@@ -123,11 +125,11 @@ pnpm run build
 The library provides several key classes:
 
 - `Frame`: Represents a coordinate reference frame
-- `Vector`: Represents a 3D vector
+- `Vector`: Represents a 3D vector in 3D space
 - `UnitVector`: Represents a normalized 3D vector
 - `Point`: Represents a point in 3D space
-- `Transform`: Represents a geometric transformation
-- `Rotation`: Handles rotation operations
+- `Transform`: Represents a geometric affine 3D transformation
+- `Rotation`: Represents rotation only transformations
 
 Each class is fully documented with TypeScript types and JSDoc comments.
 

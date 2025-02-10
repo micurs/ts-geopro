@@ -1,4 +1,5 @@
 {
+  "version": "0.0.3",
   "name": "cli-demos",
   "dependencies": {
     "@micurs/ts-geopro": "workspace:*"
