@@ -67,7 +67,7 @@ export class Point implements HomogeneousCoords {
   //#endregion Static builders
 
   toString(): string {
-    return `Point: [${this.x}, ${this.y}, ${this.z}]`;
+    return `Point: [${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.z.toFixed(4)}]`;
   }
 
   /**
