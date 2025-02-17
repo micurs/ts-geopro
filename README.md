@@ -81,14 +81,19 @@ const inBetweenDir = UnitVector.from(add(vDir1, vDir2));
 console.log('Direction in between two vectors: ', ` ${vDir1} + ${vDir2} =`, inBetweenDir.toString());
 ```
 
+### Geometric Transformations
 
-
-### Reference Frame Transformations
+Transformations can be applied using `map()` to generate new entities transformed.
 
 ```typescript
+const translation = Transform.fromTranslation(10.0, 10.0, 0);
+// map on a Transformation -> gets a translation function
+const translate = map(translation);
+const p1 = Point.from(0.0, 0.0, 0.0);
+const p2 = translate(p1);
 ```
 
-### Geometric Transformations
+### Reference Frame Transformations
 
 ```typescript
 ```
