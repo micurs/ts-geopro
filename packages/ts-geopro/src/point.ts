@@ -1,6 +1,6 @@
-import { vec3, vec4 } from "gl-matrix";
-import { Vector } from "./vector.ts";
-import { Frame } from "./frame.ts";
+import { vec3, vec4 } from 'gl-matrix';
+import { Vector } from './vector.ts';
+import { Frame } from './frame.ts';
 import { Transform } from './transform.ts';
 import { UnitVector } from './unit-vector.ts';
 
@@ -129,7 +129,7 @@ export class Point implements HomogeneousCoords {
     return Point.fromVec3(v);
   }
 
-  add(v: Vector): Point {
+  add(v: Vector | UnitVector): Point {
     const p = new Point();
     vec4.add(p._coord, this._coord, v.vec4());
     return p;

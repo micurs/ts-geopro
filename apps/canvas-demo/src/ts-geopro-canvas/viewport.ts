@@ -6,30 +6,32 @@ import type { Viewport } from './types.ts';
  * origin in the center of the canvas and the min canvas dimension set
  * as the size pass as parameter,
  * @param dim - dimension of the canvas
- * @param size - desired size of the min dimension
+ * @param zoom - desired size of the min dimension
  */
 
-export const getViewport = (width: number, height: number, size = 2.0): Viewport => {
-  let scaleFactorX = 1.0;
-  let scaleFactorY = 1.0;
-  const trnX = width / 2;
-  const trnY = height / 2;
+export const getViewport = (
+  ctx: CanvasRenderingContext2D,
+  dim: [number, number],
+  zoom: number,
+  pan: [number, number] // Already scaled
+): Viewport => {
+  let scaleFactor = 1.0;
 
-  if (width < height) {
-    scaleFactorX = width / size;
-    scaleFactorY = scaleFactorX;
-  } else {
-    scaleFactorY = height / size;
-    scaleFactorX = scaleFactorY;
-  }
+  scaleFactor = dim[0] < dim[1] ? zoom / dim[0] : zoom / dim[1];
 
-  const scale = Transform.fromScale(scaleFactorX, scaleFactorY, 1.0);
-  const trn = Transform.fromTranslation(trnX, trnY, 0.0);
+  const centerX = dim[0] / 2;
+  const centerY = dim[1] / 2;
+
+  const center = Transform.fromTranslation(centerX, centerY, 0.0);
+  const scale = Transform.fromScale(1 / scaleFactor, 1 / scaleFactor, 1.0);
+  const panTrn = Transform.fromTranslation(pan[0], pan[1], 0.0);
 
   return {
-    trans: [trnX, trnY],
-    scale: [scaleFactorX, scaleFactorY],
-    transform: compose(scale, trn),
-    dimensions: [width / scaleFactorX, height / scaleFactorY],
+    ctx,
+    pan,
+    trans: [centerX, centerY],
+    scaleFactor,
+    transform: compose(panTrn, scale, center),
+    dimensions: [dim[0] * scaleFactor, dim[1] * scaleFactor],
   };
 };

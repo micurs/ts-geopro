@@ -2,11 +2,17 @@ import { Point, Transform } from '@micurs/ts-geopro';
 
 export type PointMapper = (p: Point) => Point;
 
+export type Coord2D = [number, number];
+
+export type Size2D = [number, number];
+
 export interface Viewport {
-  scale: [number, number];
+  ctx: CanvasRenderingContext2D;
+  scaleFactor: number;
   trans: [number, number];
   transform: Transform;
   dimensions: [number, number];
+  pan: [number, number];
 }
 
 export interface GPCanvas {
@@ -14,7 +20,14 @@ export interface GPCanvas {
   viewport: Viewport;
 }
 
-export type RenderFn = (ctx: CanvasRenderingContext2D) => void;
+export type InitOptions = {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  zoom: number;
+  pan: Coord2D;
+};
+
+export type RenderFn = (viewport: Viewport) => void;
 
 export interface Camera {
   transformation: Transform;
@@ -23,3 +36,5 @@ export interface Camera {
 export type PolylineCoords = Point[];
 export type Polyline = Point[];
 export type Lines = [Point, Point][];
+
+export type Renderer = (renderer: RenderFn) => void;

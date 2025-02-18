@@ -57,7 +57,7 @@ export function compose(...t: Array<GeoMatrix>): GeoMatrix {
  * @returns a new vector or point
  */
 export function add(v: Vector, ...u: Vector[]): Vector;
-export function add(v: Point, ...u: Vector[]): Point;
+export function add(v: Point, ...u: Array<Vector | UnitVector>): Point;
 export function add(v: Addable, ...u: Addable[]): Addable {
   const res = u.reduce((acc, curr) => acc.add(curr), v);
   return res;

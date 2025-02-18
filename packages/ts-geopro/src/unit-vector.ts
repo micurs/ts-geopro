@@ -1,13 +1,13 @@
-import { vec3, vec4 } from "gl-matrix";
-import { Vector } from "./vector.ts";
-import { Transform } from "./transform.ts";
-import { Frame } from "./frame.ts";
+import { vec3, vec4 } from 'gl-matrix';
+import { Vector } from './vector.ts';
+import { Transform } from './transform.ts';
+import { Frame } from './frame.ts';
 import { Point } from './point.ts';
 
-import type { HomogeneousCoords, VecEntries } from './types.ts';
+import type { Addable, HomogeneousCoords, VecEntries } from './types.ts';
 import { isVector } from './operations.ts';
 
-export class UnitVector implements HomogeneousCoords {
+export class UnitVector implements HomogeneousCoords, Addable {
   private _coord: vec4;
 
   private constructor() {
@@ -159,6 +159,17 @@ export class UnitVector implements HomogeneousCoords {
     const v = Vector.fromVec3(this.triplet);
     return v.crossProduct(v2 as Vector);
   }
+
+  /**
+   * Add two vectors
+   * @param v - the other vector
+   * @returns this vector plus the other vector
+   */
+  add = (v: UnitVector): UnitVector => {
+    const _coord: vec4 = vec4.create();
+    vec4.add(_coord, this._coord, v._coord);
+    return UnitVector.fromVec4(_coord);
+  };
 
   vec3(): Readonly<vec3> {
     return vec3.fromValues(this.x, this.y, this.z);

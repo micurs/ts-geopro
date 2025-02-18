@@ -53,7 +53,7 @@ h1 {
   flex-grow: 1;
   flex-shrink: 1;
   background-color: #242424;
-  border: solid 1px red;
+  border: solid 1px transparent;
   min-width: 100px;
   min-height: none;
 }
