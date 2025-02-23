@@ -1,9 +1,11 @@
 import { mat4, vec3, type ReadonlyMat4 } from 'gl-matrix';
-import { Point } from './point.ts';
-import { UnitVector } from './unit-vector.ts';
-import { Vector } from './vector.ts';
+import { Point } from './geo-entities/point.ts';
+import { UnitVector } from './geo-entities/unit-vector.ts';
+import { Vector } from './geo-entities/vector.ts';
 import { Rotation } from './rotation.ts';
-import type { AffineGeoMatrix, Col, GeoMatrix, InvertibleGroMatrix, Row } from './types.ts';
+import { compose } from './operations.ts';
+import type { AffineGeoMatrix, Col, GeoEntity, GeoMatrix, InvertibleGroMatrix, Row } from './types.ts';
+import { Frame } from './index.ts';
 
 export class Transform implements GeoMatrix, InvertibleGroMatrix {
   _direct: mat4;
@@ -76,7 +78,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
   /* c8 ignore start */
   static lookAt(eye: Point, target: Point, up: UnitVector): Transform {
     const t = new Transform();
-    mat4.lookAt(t._direct, eye.vec3(), target.vec3(), up.vec3());
+    mat4.lookAt(t._direct, eye.vec3, target.vec3, up.vec3);
     mat4.invert(t._inverse, t._direct);
     t._isIdentity = false;
     return t;
@@ -111,7 +113,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
 
   static fromMove(mv: Vector): Transform {
     const t = new Transform();
-    mat4.translate(t._direct, t._direct, mv.vec3());
+    mat4.translate(t._direct, t._direct, mv.vec3);
     mat4.invert(t._inverse, t._direct);
     t._isIdentity = false;
     return t;
@@ -157,7 +159,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
    */
   static fromRotoTranslation(rot: Rotation, mv: Vector): Transform {
     const t = new Transform();
-    mat4.fromRotationTranslation(t._direct, rot.quat, mv.vec3());
+    mat4.fromRotationTranslation(t._direct, rot.quat, mv.vec3);
     mat4.invert(t._inverse, t._direct);
     t._isIdentity = false;
     return t;
@@ -173,7 +175,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
    */
   static fromRotOTranslationScale(rot: Rotation, mv: Vector, scale: Vector): Transform {
     const t = new Transform();
-    mat4.fromRotationTranslationScale(t._direct, rot.quat, mv.vec3(), scale.vec3());
+    mat4.fromRotationTranslationScale(t._direct, rot.quat, mv.vec3, scale.vec3);
     mat4.invert(t._inverse, t._direct);
     t._isIdentity = false;
     return t;
@@ -223,7 +225,7 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
    * Applies the transformation to a point
    * @param p - the point to transform
    */
-  apply<T extends { map: (t: Transform) => T }>(v: T): T {
+  apply<T>(v: GeoEntity<T>): T {
     return v.map(this);
   }
 
@@ -283,6 +285,16 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return t;
   }
 
+  relative(f: Frame): Transform {
+    const ft = f.toTransform();
+    // toWorld -> transform -> toFrame
+    return compose(
+      ft.invert(), // transform to world coordinate
+      this, // perform the transformation
+      ft // transform back to frame
+    );
+  }
+
   get isIdentity(): boolean {
     return this._isIdentity || mat4.equals(this._direct, this._inverse);
   }
@@ -306,11 +318,11 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     return 16 * 4;
   }
 
-  get asFloat32Array(): ArrayBuffer {
+  get asFloat32Array(): Float32Array<ArrayBuffer> {
     return new Float32Array(this._direct.values());
   }
 
-  get inverseAsFloat32Array(): ArrayBuffer {
+  get inverseAsFloat32Array(): Float32Array<ArrayBuffer> {
     return new Float32Array(this._inverse.values());
   }
 }

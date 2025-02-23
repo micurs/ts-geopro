@@ -12,8 +12,8 @@ export const renderPerfectGrid = (ctx: CanvasRenderingContext2D, viewport: Viewp
 
   const semDimX = dimX / 2;
   const semDimY = dimY / 2;
-  const limX = [-semDimX - panX - GM, semDimX - panX + GM];
-  const limY = [-semDimY + panY - GM, semDimY + panY + GM];
+  const limX: [number, number] = [-semDimX - panX - GM, semDimX - panX + GM];
+  const limY: [number, number] = [-semDimY + panY - GM, semDimY + panY + GM];
 
   const alpha = 1 - Math.abs(d - Math.floor(d));
 

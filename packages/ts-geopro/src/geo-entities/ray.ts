@@ -1,9 +1,11 @@
 import { Frame } from './frame.ts';
 import { Point } from './point.ts';
+import type { GeoEntity } from '../types.ts';
 import { UnitVector } from './unit-vector.ts';
 import { Vector } from './vector.ts';
+import { Transform } from '../transform.ts';
 
-export class Ray {
+export class Ray implements GeoEntity<Ray> {
   private _origin: Point;
   private _direction: UnitVector;
 
@@ -14,28 +16,38 @@ export class Ray {
 
   //#region Static builders
 
+  static from(o: Point, d: Vector | UnitVector): Ray {
+    return Ray.fromPointAndVector(o, d);
+  }
+
   static fromPoints(o: Point, d: Point): Ray {
     const r = new Ray();
     r._origin = o;
-    r._direction = UnitVector.fromVector(Vector.fromPoints(d, o));
+    r._direction = UnitVector.fromPoints(d, o);
     return r;
   }
 
-  static fromPointAndVector(o: Point, d: Vector): Ray {
+  static fromPointAndVector(o: Point, d: Vector | UnitVector): Ray {
     const r = new Ray();
     r._origin = o;
-    r._direction = UnitVector.fromVector(d);
+    r._direction = UnitVector.from(d);
     return r;
   }
 
   //#endregion Static builders
 
-  get o(): Point {
-    return this._origin;
+  //#region GeoEntity implementation
+
+  map(t: Transform): Ray {
+    const to = this.o.map(t);
+    const tv = this.d.map(t);
+    return Ray.fromPointAndVector(to, tv);
   }
 
-  get d(): UnitVector {
-    return this._direction;
+  unMap(t: Transform): Ray {
+    const to = this.o.unMap(t);
+    const tv = this.d.unMap(t);
+    return Ray.fromPointAndVector(to, tv);
   }
 
   /**
@@ -59,4 +71,18 @@ export class Ray {
     rw._direction = this._direction.absolute(f);
     return rw;
   }
+
+  //#endregion GeoEntity implementation
+
+  //#region Simple Getters
+
+  get o(): Point {
+    return this._origin;
+  }
+
+  get d(): UnitVector {
+    return this._direction;
+  }
+
+  //#endregion Simple Getters
 }

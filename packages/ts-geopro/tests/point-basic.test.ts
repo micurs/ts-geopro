@@ -30,8 +30,8 @@ describe('Point basic operations', () => {
     expect(p.y).toBe(20);
     expect(p.z).toBe(15);
     expect(p.coordinates).toEqual([10, 20, 15, 1]);
-    expect(p.vec3()).toEqual(v3);
-    expect(p.vec4()).toEqual(v4);
+    expect(p.vec3).toEqual(v3);
+    expect(p.vec4).toEqual(v4);
     expect(p.isPoint()).toBe(true);
   });
 
@@ -58,7 +58,7 @@ describe('Point basic operations', () => {
 
   test('Get a String from a Point', () => {
     const p = Point.fromValues(10, 20, 15);
-    expect(p.toString()).toBe('Point: [10, 20, 15]');
+    expect(p.toString()).toBe('Point: [10.0000, 20.0000, 15.0000]');
   });
 
   test('Subtract 2 points returns a vector', () => {

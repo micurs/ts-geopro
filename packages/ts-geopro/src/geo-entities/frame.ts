@@ -2,12 +2,12 @@ import { mat4, type ReadonlyMat4 } from 'gl-matrix';
 import { UnitVector } from './unit-vector.ts';
 import { Vector } from './vector.ts';
 import { Point } from './point.ts';
-import { Transform } from './transform.ts';
+import { Transform } from '../transform.ts';
 
-import type { AffineGeoMatrix, Col, GeoMatrix, InvertibleGroMatrix, MatEntries, Row } from './types.ts';
-import { isFrame, isUnitVector } from './operations.ts';
+import type { AffineGeoMatrix, Col, GeoMatrix, MatEntries, Row, GeoEntity } from '../types.ts';
+import { isUnitVector } from '../operations.ts';
 
-export class Frame implements GeoMatrix, InvertibleGroMatrix {
+export class Frame implements GeoMatrix, AffineGeoMatrix, GeoEntity<Frame> {
   _direct: mat4;
   _inverse: mat4;
   _isWorld: boolean = false;
@@ -18,34 +18,6 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
     mat4.identity(this._direct);
     mat4.identity(this._inverse);
     this._isWorld = true;
-  }
-
-  direct(row: Row, col: Col): number {
-    return this._direct[4 * row + col]!;
-  }
-
-  inverse(row: Row, col: Col): number {
-    return this._inverse[4 * row + col]!;
-  }
-
-  get isWorld(): boolean {
-    return this._isWorld || mat4.equals(this._direct, this._inverse);
-  }
-
-  /**
-   * Retrieve the matrix used to transform from this frame to
-   * the global frame.
-   */
-  get directMatrix(): ReadonlyMat4 {
-    return mat4.clone(this._direct);
-  }
-
-  /**
-   * Retrieve the matrix used to transform from global frame
-   * to this frame
-   */
-  get inverseMatrix(): ReadonlyMat4 {
-    return mat4.clone(this._inverse);
   }
 
   //#region Static builders
@@ -129,53 +101,66 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
   };
   //#endregion
 
-  isFrame(): boolean {
-    return true;
-  }
-
-  toString(): string {
-    return `Frame: { o: {${this.origin}}, i: {${this.i}}, j: {${this.j}}, k: {${this.k}} }`;
-  }
+  //#region GeoEntity implementation
 
   /**
    * Compose this frame with another transformation yielding a new frame.
-   * @param t - the other transformation to compose with
+   * @param f - the other transformation to compose with
    * @returns a new Frame
    */
-  map(t: Frame): Frame {
-    return this.compose(t) as Frame;
+  map(f: Transform): Frame {
+    return this.compose(f) as Frame;
+  }
+
+  unMap(f: Transform): Frame {
+    return this.compose(f.invert()) as Frame;
   }
 
   /**
-   * Builds and returns the composition of t with the
-   * transformation represented by this frame.
-   * This can be use to transform a frame to another
-   * by using simple transformations.
-   * That is: resM = t.M · this.M
-   * @param t - the transformation to compose with
+   * Convert a frame from the global frame to this frame of reference.
+   * @param frame - the frame to convert
+   * @returns a new frame as defined in the local frame
    */
-  compose(t: AffineGeoMatrix): AffineGeoMatrix {
-    const { directMatrix: dm1, inverseMatrix: im1 } = this;
-    const { directMatrix: dm2, inverseMatrix: im2 } = t;
-    const direct = mat4.create();
-    const inverse = mat4.create();
-    mat4.multiply(direct, dm2, dm1);
-    mat4.multiply(inverse, im1, im2);
-    return Frame.fromMatrices(inverse, direct) as AffineGeoMatrix;
-  }
-
-  toTransform(): Transform {
-    return Transform.fromMat4(this._direct);
+  relative(frame: Frame): Frame {
+    const ro = this.origin.relative(frame);
+    const rz = this.k.relative(frame);
+    const rx = this.i.relative(frame);
+    const rf = Frame.from2Vectors(ro, rz, rx);
+    return rf;
   }
 
   /**
-   * Invert the transformation defined for this frame.
+   * Take a frame defined relative to this reference frame
+   * and return the same entity defined in the global reference frame.
+   * @param frame - the point, vector or frame to convert
+   * @returns the same entity defined in the global reference frame
    */
-  invert(): AffineGeoMatrix {
-    const t = new Frame();
-    t._direct = mat4.clone(this._inverse);
-    t._inverse = mat4.clone(this._direct);
-    return t;
+  absolute(frame: Frame): Frame {
+    const ro = this.origin.absolute(frame);
+    const rz = this.k.absolute(frame);
+    const rx = this.i.absolute(frame);
+    const rf = Frame.from2Vectors(ro, rz, rx);
+    return rf;
+  }
+
+  //#endregion GeoEntity implementation
+
+  //#region Simple Getters
+
+  /**
+   * Retrieve the matrix used to transform from this frame to
+   * the global frame.
+   */
+  get directMatrix(): ReadonlyMat4 {
+    return mat4.clone(this._direct);
+  }
+
+  /**
+   * Retrieve the matrix used to transform from global frame
+   * to this frame
+   */
+  get inverseMatrix(): ReadonlyMat4 {
+    return mat4.clone(this._inverse);
   }
 
   /**
@@ -214,56 +199,77 @@ export class Frame implements GeoMatrix, InvertibleGroMatrix {
   }
 
   /**
-   * Convert a point, vector or frame from the global frame to this frame of reference
-   * This allow to get a point from the global frame to the local frame.
-   * The new point coordinates represent the input point coordinates in the local frame.
-   * @param x - the point, vector or frame to convert
-   * @returns a new point, vector or frame as defined in the local frame
+   * The size in bytes of a Float32Array to store the matrix values
    */
-  relative(x: Point): Point;
-  relative(x: UnitVector): UnitVector;
-  relative(x: Vector): Vector;
-  relative(x: Frame): Frame;
-  relative(x: Point | UnitVector | Vector | Frame): Point | UnitVector | Vector | Frame {
-    if (x && isFrame(x)) {
-      const ro = this.origin.relative(x);
-      const rz = this.k.relative(x);
-      const rx = this.i.relative(x);
-      const rf = Frame.from2Vectors(ro, rz, rx);
-      return rf;
-    }
-    return x.relative(this);
-  }
-
-  /**
-   * Take a point relative to this frame and return the point in the global frame.
-   * @param x - the point, vector or frame to convert
-   * @returns a new point, vector or frame as defined in the global frame
-   */
-  absolute(x: Point): Point;
-  absolute(x: UnitVector): UnitVector;
-  absolute(x: Vector): Vector;
-  absolute(x: Frame): Frame;
-  absolute(x: Point | UnitVector | Vector | Frame): Point | UnitVector | Vector | Frame {
-    if (x && isFrame(x)) {
-      const ro = this.origin.absolute(x);
-      const rz = this.k.absolute(x);
-      const rx = this.i.absolute(x);
-      const rf = Frame.from2Vectors(ro, rz, rx);
-      return rf;
-    }
-    return x.relative(this);
-  }
-
   static get Float32Size(): number {
     return 16 * 4;
   }
 
-  get asFloat32Array(): ArrayBuffer {
+  /**
+   * The Float32Array to store the matrix values
+   */
+  get asFloat32Array(): Float32Array<ArrayBuffer> {
     return new Float32Array(this._direct.values());
   }
 
-  get inverseAsFloat32Array(): ArrayBuffer {
+  /**
+   * The Float32Array to store the matrix values
+   */
+  get inverseAsFloat32Array(): Float32Array<ArrayBuffer> {
     return new Float32Array(this._inverse.values());
+  }
+
+  //#endregion Simple Getters
+
+  /**
+   * Builds and returns the composition of t with the
+   * transformation represented by this frame.
+   * This can be use to transform a frame to another
+   * by using simple transformations.
+   * That is: resM = t.M · this.M
+   * @param t - the transformation to compose with
+   */
+  compose(t: AffineGeoMatrix): AffineGeoMatrix {
+    const { directMatrix: dm1, inverseMatrix: im1 } = this;
+    const { directMatrix: dm2, inverseMatrix: im2 } = t;
+    const direct = mat4.create();
+    const inverse = mat4.create();
+    mat4.multiply(direct, dm2, dm1);
+    mat4.multiply(inverse, im1, im2);
+    return Frame.fromMatrices(inverse, direct) as AffineGeoMatrix;
+  }
+
+  toTransform(): Transform {
+    return Transform.fromMat4(this._direct);
+  }
+
+  isFrame(): boolean {
+    return true;
+  }
+
+  toString(): string {
+    return `Frame: { o: {${this.origin}}, i: {${this.i}}, j: {${this.j}}, k: {${this.k}} }`;
+  }
+
+  /**
+   * Invert the transformation defined for this frame.
+   */
+  invert(): Frame {
+    const t = new Frame();
+    t._direct = mat4.clone(this._inverse);
+    t._inverse = mat4.clone(this._direct);
+    return t;
+  }
+
+  direct(row: Row, col: Col): number {
+    return this._direct[4 * row + col]!;
+  }
+
+  inverse(row: Row, col: Col): number {
+    return this._inverse[4 * row + col]!;
+  }
+
+  get isWorld(): boolean {
+    return this._isWorld || mat4.equals(this._direct, this._inverse);
   }
 }

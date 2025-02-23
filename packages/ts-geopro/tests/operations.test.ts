@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { deg2rad, Frame, Transform, compose, map, Point, Vector, add, Rotation } from '../src';
+import { absolute, relative } from '../src/operations.ts';
 
 describe('Operations', () => {
   test('Compose two opposite transformations should return the identity', () => {
@@ -41,5 +42,22 @@ describe('Operations', () => {
     expect(p1.x).toBe(20);
     expect(p1.y).toBe(40);
     expect(p1.z).toBe(30);
+  });
+
+  test('get the Absolute and Relative coordinates of a relative point', () => {
+    const o = Point.from(10, 20, 15);
+    const z = Vector.from(0, 0, 1);
+    const x = Vector.from(1, 0, 0);
+    const frame = Frame.from2Vectors(o, z, x);
+
+    const absPoint: Point = absolute(frame)(Point.from(1, 1, 1));
+    expect(absPoint.x).toBe(11);
+    expect(absPoint.y).toBe(21);
+    expect(absPoint.z).toBe(16);
+
+    const relPoint: Point = relative(frame)(absPoint);
+    expect(relPoint.x).toBe(1);
+    expect(relPoint.y).toBe(1);
+    expect(relPoint.z).toBe(1);
   });
 });

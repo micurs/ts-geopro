@@ -41,7 +41,6 @@ describe('Frame basic operations', () => {
     expect(f.inverse(3, 3)).toBeCloseTo(idMat[15]);
 
     expect(f.asFloat32Array.byteLength).toBe(Transform.Float32Size);
-
   });
 
   test('Create a frame from a point and two vectors', () => {
@@ -448,7 +447,7 @@ describe('Frame basic operations', () => {
 
     const str = f.toString();
     expect(str).toBe(
-      'Frame: { o: {Point: [10, 10, 10]}, i: {UnitVector: [1, 0, 0]}, j: {UnitVector: [0, 1, 0]}, k: {UnitVector: [0, 0, 1]} }'
+      'Frame: { o: {Point: [10.0000, 10.0000, 10.0000]}, i: {UnitVector: [1, 0, 0]}, j: {UnitVector: [0, 1, 0]}, k: {UnitVector: [0, 0, 1]} }'
     );
   });
 });

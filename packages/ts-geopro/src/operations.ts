@@ -1,10 +1,10 @@
 import type { vec4, vec3 } from 'gl-matrix';
-import { Frame } from './frame.ts';
-import { Point } from './point.ts';
+import { Frame } from './geo-entities/frame.ts';
+import { Point } from './geo-entities/point.ts';
 import { Transform } from './transform.ts';
-import type { Addable, GeoMatrix, HomogeneousCoords } from './types.ts';
-import { UnitVector } from './unit-vector.ts';
-import { Vector } from './vector.ts';
+import type { Addable, GeoEntity, GeoMatrix } from './types.ts';
+import { UnitVector } from './geo-entities/unit-vector.ts';
+import { Vector } from './geo-entities/vector.ts';
 
 export type Mappable = Vector | Point | UnitVector;
 
@@ -28,10 +28,40 @@ export const isUnitVector = (d: unknown): d is UnitVector => {
   return d && (d as UnitVector).isUnitVector !== undefined ? true : false;
 };
 
+/**
+ * Curried map function
+ * @param transf - an input
+ * @param t - a transformer with its own map function.
+ * @returns the mapping via the transformer t of the input i.
+ */
 export const map =
-  (t: GeoMatrix) =>
-  (o: HomogeneousCoords): HomogeneousCoords => {
-    return o.map(t);
+  (transf: Transform) =>
+  <T>(entity: GeoEntity<T>): T => {
+    return entity.map(transf);
+  };
+
+/**
+ * Curried absolute function: compute the absolute coordinates of an entity
+ * that is assumed to be relative to a frame.
+ * @param frame
+ * @returns
+ */
+export const absolute =
+  (frame: Frame) =>
+  <T>(relEntity: GeoEntity<T>): T => {
+    return relEntity.absolute(frame);
+  };
+
+/**
+ * Curried relative function: compute the relative coordinates of an entity
+ * that is assumed to be in an absolute position.
+ * @param frame
+ * @returns
+ */
+export const relative =
+  (frame: Frame) =>
+  <T>(absEntity: GeoEntity<T>): T => {
+    return absEntity.relative(frame);
   };
 
 export type Composable = Frame | Transform;

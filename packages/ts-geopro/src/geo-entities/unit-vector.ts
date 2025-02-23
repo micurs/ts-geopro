@@ -1,13 +1,13 @@
 import { vec3, vec4 } from 'gl-matrix';
 import { Vector } from './vector.ts';
-import { Transform } from './transform.ts';
+import { Transform } from '../transform.ts';
 import { Frame } from './frame.ts';
 import { Point } from './point.ts';
 
-import type { Addable, HomogeneousCoords, VecEntries } from './types.ts';
-import { isVector } from './operations.ts';
+import type { Addable, HomogeneousCoords, VecEntries, GeoEntity } from '../types.ts';
+import { isUnitVector, isVector } from '../operations.ts';
 
-export class UnitVector implements HomogeneousCoords, Addable {
+export class UnitVector implements HomogeneousCoords, Addable, GeoEntity<UnitVector> {
   private _coord: vec4;
 
   private constructor() {
@@ -16,11 +16,14 @@ export class UnitVector implements HomogeneousCoords, Addable {
 
   //#region Static builders
 
-  static from(x: Vector): UnitVector;
+  static from(x: Vector | UnitVector): UnitVector;
   static from(x: number, y: number, z: number): UnitVector;
-  static from(x: number | Vector, y?: number, z?: number): UnitVector {
+  static from(x: number | Vector | UnitVector, y?: number, z?: number): UnitVector {
     if (isVector(x)) {
       return UnitVector.fromVector(x);
+    }
+    if (isUnitVector(x)) {
+      return x;
     }
     return UnitVector.fromValues(x, y!, z!);
   }
@@ -58,7 +61,7 @@ export class UnitVector implements HomogeneousCoords, Addable {
    */
   static crossProduct = (v1: UnitVector | Vector, v2: UnitVector | Vector): UnitVector => {
     const res = vec3.create();
-    vec3.cross(res, v1.vec3(), v2.vec3());
+    vec3.cross(res, v1.vec3, v2.vec3);
     return UnitVector.fromVec3(res);
   };
 
@@ -79,18 +82,16 @@ export class UnitVector implements HomogeneousCoords, Addable {
 
   //#endregion Static builders
 
-  toString(): string {
-    return `UnitVector: [${this.x}, ${this.y}, ${this.z}]`;
-  }
+  //#region GeoEntity implementation
 
-  map(t: Transform | Frame): UnitVector {
+  map(t: Transform): UnitVector {
     const p = new UnitVector();
     vec4.transformMat4(p._coord, this._coord, t.directMatrix);
     vec4.normalize(p._coord, p._coord);
     return p;
   }
 
-  unMap(t: Transform | Frame): UnitVector {
+  unMap(t: Transform): UnitVector {
     const p = new UnitVector();
     vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
     vec4.normalize(p._coord, p._coord);
@@ -98,29 +99,16 @@ export class UnitVector implements HomogeneousCoords, Addable {
   }
 
   relative(f: Frame): UnitVector {
-    return this.map(f);
+    return this.map(f.toTransform());
   }
 
   absolute(f: Frame): UnitVector {
-    return this.unMap(f);
+    return this.unMap(f.toTransform());
   }
 
-  invert(): UnitVector {
-    const p = new UnitVector();
-    vec4.negate(p._coord, this._coord);
-    return p;
-  }
+  //#endregion GeoEntity implementation
 
-  dot = (v: UnitVector): number => {
-    return vec3.dot(this.vec3(), v.vec3());
-  };
-
-  /**
-   * return tru if the object is a UnitVector
-   */
-  isUnitVector(): boolean {
-    return true;
-  }
+  //#region Simple Getters
 
   /**
    * Get component along the X axis
@@ -155,9 +143,50 @@ export class UnitVector implements HomogeneousCoords, Addable {
     return [this.x, this.y, this.z];
   }
 
-  crossProduct(v2: UnitVector | Vector): Vector {
-    const v = Vector.fromVec3(this.triplet);
-    return v.crossProduct(v2 as Vector);
+  get vec3(): Readonly<vec3> {
+    return vec3.fromValues(this.x, this.y, this.z);
+  }
+
+  get vec4(): Readonly<vec4> {
+    return this._coord;
+  }
+
+  /* v8 ignore next 3 */
+  get asFloat32Array(): Float32Array<ArrayBuffer> {
+    return new Float32Array(this.coordinates);
+  }
+
+  /* v8 ignore next 3 */
+  static get Float32Size(): number {
+    return 4 * 4;
+  }
+
+  //#endregion Simple Getters
+
+  toString(): string {
+    return `UnitVector: [${this.x}, ${this.y}, ${this.z}]`;
+  }
+
+  invert(): UnitVector {
+    const p = new UnitVector();
+    vec4.negate(p._coord, this._coord);
+    return p;
+  }
+
+  dot = (v: UnitVector): number => {
+    return vec3.dot(this.vec3, v.vec3);
+  };
+
+  /**
+   * return tru if the object is a UnitVector
+   */
+  isUnitVector(): boolean {
+    return true;
+  }
+
+  crossProduct(v2: UnitVector): UnitVector {
+    const v = Vector.from(this);
+    return UnitVector.from(v.crossProduct(Vector.from(v2)));
   }
 
   /**
@@ -170,22 +199,4 @@ export class UnitVector implements HomogeneousCoords, Addable {
     vec4.add(_coord, this._coord, v._coord);
     return UnitVector.fromVec4(_coord);
   };
-
-  vec3(): Readonly<vec3> {
-    return vec3.fromValues(this.x, this.y, this.z);
-  }
-
-  vec4(): Readonly<vec4> {
-    return this._coord;
-  }
-
-  /* v8 ignore next 3 */
-  static get Float32Size(): number {
-    return 4 * 4;
-  }
-
-  /* v8 ignore next 3 */
-  get asFloat32Array(): ArrayBuffer {
-    return new Float32Array(this.coordinates);
-  }
 }

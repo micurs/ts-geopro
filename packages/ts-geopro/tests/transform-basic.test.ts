@@ -8,7 +8,7 @@ describe('Transform basic operations', () => {
     const idTrans = Transform.identity();
     const p1 = Point.fromValues(10, 10, 10);
     const p2 = p1.map(idTrans);
-    expect(p1.vec4()).toEqual(p2.vec4());
+    expect(p1.vec4).toEqual(p2.vec4);
     expect(idTrans.asFloat32Array.byteLength).toBe(Transform.Float32Size);
     expect(idTrans.isIdentity).toBe(true);
 
@@ -32,10 +32,10 @@ describe('Transform basic operations', () => {
     const p1 = Point.fromValues(10, 10, 10);
 
     const tv = vec4.create();
-    vec4.transformMat4(tv, p1.vec4(), m1);
+    vec4.transformMat4(tv, p1.vec4, m1);
 
     const tp = t1.apply(p1);
-    expect(tp.vec4()).toEqual(tv);
+    expect(tp.vec4).toEqual(tv);
 
     expect(t1.isIdentity).toBe(false);
   });
@@ -81,7 +81,7 @@ describe('Transform basic operations', () => {
     const t2 = t1.invert();
     const p3 = p2.map(t2);
 
-    expect(p1.vec3()).toEqual(p3.vec3());
+    expect(p1.vec3).toEqual(p3.vec3);
   });
 
   test('Create tw transformation and make sure their composition works as expected', () => {
@@ -101,7 +101,7 @@ describe('Transform basic operations', () => {
     const p3 = p2.map(t2);
     const p4 = p1.map(t3);
 
-    expect(p3.vec3()).toEqual(p4.vec3());
+    expect(p3.vec3).toEqual(p4.vec3);
   });
 
   test('Create a transformation with a move vector', () => {

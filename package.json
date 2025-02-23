@@ -3,7 +3,7 @@
   "private": true,
   "devDependencies": {
     "@total-typescript/tsconfig": "^1.0.4",
-    "turbo": "^2.4.0"
+    "turbo": "^2.4.2"
   },
   "scripts": {
     "dev": "turbo run dev",

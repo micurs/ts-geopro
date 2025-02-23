@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { vec4, vec3 } from 'gl-matrix';
 
-import { UnitVector, round, Vector, add } from '../src';
+import { UnitVector, round, Vector, add } from '../src/index.ts';
 
 describe('UnitVector basic operations', () => {
   const precision = 6;
@@ -80,5 +80,35 @@ describe('UnitVector operations', () => {
     const dotProd = v1.dot(v2);
 
     expect(dotProd).toBeCloseTo(0);
+  });
+
+  test('add 2 unit vectors', () => {
+    const v1 = UnitVector.from(1, 0, 0);
+    const v2 = UnitVector.from(0, 1, 0);
+    const vExpected = UnitVector.from(1, 1, 0);
+
+    const v3 = v1.add(v2);
+    expect(v3.x).toBeCloseTo(vExpected.x);
+    expect(v3.y).toBeCloseTo(vExpected.y);
+    expect(v3.z).toBeCloseTo(vExpected.z);
+  });
+
+  test('cross-product of two UnitVectors', () => {
+    const v1 = UnitVector.from(1, 0, 0);
+    const v2 = UnitVector.from(0, 1, 0);
+    const v3 = v1.crossProduct(v2);
+    expect(v3.x).toBe(0);
+    expect(v3.y).toBe(0);
+    expect(v3.z).toBe(1);
+    expect(v3.isUnitVector()).toBe(true);
+  });
+
+  test('invert a unit vector', () => {
+    const v1 = UnitVector.from(1, 0, 0);
+    const expectedV = UnitVector.from(-1, 0, 0);
+    const v2 = v1.invert();
+    expect(v2.x).toBeCloseTo(expectedV.x);
+    expect(v2.y).toBeCloseTo(expectedV.y);
+    expect(v2.z).toBeCloseTo(expectedV.z);
   });
 });

@@ -1,13 +1,13 @@
 import { vec3, vec4 } from 'gl-matrix';
 import { Vector } from './vector.ts';
 import { Frame } from './frame.ts';
-import { Transform } from './transform.ts';
+import { Transform } from '../transform.ts';
 import { UnitVector } from './unit-vector.ts';
 
-import type { GeoMatrix, HomogeneousCoords, VecEntries } from './types.ts';
-import { isUnitVector, isVec4, isVector } from './operations.ts';
+import type { GeoEntity, GeoMatrix, HomogeneousCoords, VecEntries } from '../types.ts';
+import { isUnitVector, isVec4, isVector } from '../operations.ts';
 
-export class Point implements HomogeneousCoords {
+export class Point implements HomogeneousCoords, GeoEntity<Point> {
   private _coord: vec4;
 
   private constructor() {
@@ -66,9 +66,7 @@ export class Point implements HomogeneousCoords {
 
   //#endregion Static builders
 
-  toString(): string {
-    return `Point: [${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.z.toFixed(4)}]`;
-  }
+  //#region GeoEntity implementation
 
   /**
    * Transform a point via a transformation or a reference frame
@@ -77,7 +75,7 @@ export class Point implements HomogeneousCoords {
    * @param t - transformation or reference frame
    * @returns a new Point
    */
-  map(t: GeoMatrix): Point {
+  map(t: Transform): Point {
     const p = new Point();
     vec4.transformMat4(p._coord, this._coord, t.directMatrix);
     return p;
@@ -90,54 +88,34 @@ export class Point implements HomogeneousCoords {
    * @param t - Transform or Frame
    * @returns a new Point
    */
-  unMap(t: Transform | Frame): Point {
+  unMap(t: Transform): Point {
     const p = new Point();
     vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
     return p;
   }
 
+  /**
+   * Transform a point relative to the given frame into the world coordinate
+   * @param f - The reference frame
+   * @returns a point in world coordinate
+   */
   relative(f: Frame): Point {
-    return this.unMap(f);
+    return this.unMap(f.toTransform());
   }
 
   /**
-   * Assume this point is relative to the given frame and return the absolute point in world coordinate
+   * Assume this point is relative to the given frame and return the absolute point
+   * in world coordinate.
    * @param f - the reference frame
    * @returns a new Point in world coordinate
    */
   absolute(f: Frame): Point {
-    return this.map(f);
+    return this.map(f.toTransform());
   }
 
-  static relative(p: Point, f: Frame): Point {
-    return p.unMap(f);
-  }
+  //#endregion GeoEntity implementation
 
-  static absolute(p: Point, f: Frame): Point {
-    return p.map(f);
-  }
-
-  subtract(p: Point): Vector {
-    const v = vec4.create();
-    vec4.subtract(v, this._coord, p._coord);
-    return Vector.fromVec4(v);
-  }
-
-  scale(s: number): Point {
-    const v = vec3.create();
-    vec3.scale(v, this.vec3(), s);
-    return Point.fromVec3(v);
-  }
-
-  add(v: Vector | UnitVector): Point {
-    const p = new Point();
-    vec4.add(p._coord, this._coord, v.vec4());
-    return p;
-  }
-
-  isPoint(): boolean {
-    return true;
-  }
+  //#region Simple Getters
 
   get x(): number {
     return this._coord[0];
@@ -157,19 +135,55 @@ export class Point implements HomogeneousCoords {
     return [this.x, this.y, this.z];
   }
 
-  vec3(): Readonly<vec3> {
+  get vec3(): Readonly<vec3> {
     return vec3.fromValues(this.x, this.y, this.z);
   }
 
-  vec4(): Readonly<vec4> {
+  get vec4(): Readonly<vec4> {
     return vec4.fromValues(this.x, this.y, this.z, 1.0);
+  }
+
+  get asFloat32Array(): Float32Array<ArrayBuffer> {
+    return new Float32Array(this.coordinates);
   }
 
   static get Float32Size(): number {
     return 4 * 4;
   }
 
-  get asFloat32Array(): ArrayBuffer {
-    return new Float32Array(this.coordinates);
+  //#endregion Simple Getters
+
+  toString(): string {
+    return `Point: [${this.x.toFixed(4)}, ${this.y.toFixed(4)}, ${this.z.toFixed(4)}]`;
+  }
+
+  static relative(p: Point, f: Frame): Point {
+    return p.unMap(f.toTransform());
+  }
+
+  static absolute(p: Point, f: Frame): Point {
+    return p.map(f.toTransform());
+  }
+
+  subtract(p: Point): Vector {
+    const v = vec4.create();
+    vec4.subtract(v, this._coord, p._coord);
+    return Vector.fromVec4(v);
+  }
+
+  scale(s: number): Point {
+    const v = vec3.create();
+    vec3.scale(v, this.vec3, s);
+    return Point.fromVec3(v);
+  }
+
+  add(v: Vector | UnitVector): Point {
+    const p = new Point();
+    vec4.add(p._coord, this._coord, v.vec4);
+    return p;
+  }
+
+  isPoint(): boolean {
+    return true;
   }
 }

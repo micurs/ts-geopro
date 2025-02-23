@@ -1,21 +1,17 @@
-import { vec3, vec4 } from "gl-matrix";
-import { Transform } from "./transform.ts";
-import { Frame } from "./frame.ts";
-import { Point } from "./point.ts";
-import { isUnitVector, isVec3, isVec4 } from './operations.ts';
+import { vec3, vec4 } from 'gl-matrix';
+import { Transform } from '../transform.ts';
+import { Frame } from './frame.ts';
+import { Point } from './point.ts';
+import { isUnitVector, isVec3, isVec4 } from '../operations.ts';
 
-import type { Addable, HomogeneousCoords, VecEntries } from './types.ts';
+import type { Addable, HomogeneousCoords, VecEntries, GeoEntity } from '../types.ts';
 import { UnitVector } from './unit-vector.ts';
 
-export class Vector implements HomogeneousCoords, Addable {
+export class Vector implements HomogeneousCoords, Addable, GeoEntity<Vector> {
   private _coord: vec4;
 
   private constructor() {
     this._coord = vec4.fromValues(0, 0, 0, 0);
-  }
-
-  get isVector(): boolean {
-    return true;
   }
 
   //#region Static builders
@@ -66,7 +62,7 @@ export class Vector implements HomogeneousCoords, Addable {
 
   static fromUnitAndLength(u: UnitVector, l: number): Vector {
     const v = new Vector();
-    vec4.scale(v._coord, u.vec4(), l);
+    vec4.scale(v._coord, u.vec4, l);
     return v;
   }
 
@@ -78,7 +74,7 @@ export class Vector implements HomogeneousCoords, Addable {
    */
   static fromPoints(p1: Point, p2: Point): Vector {
     const v = new Vector();
-    vec4.subtract(v._coord, p1.vec4(), p2.vec4());
+    vec4.subtract(v._coord, p1.vec4, p2.vec4);
     return v;
   }
 
@@ -96,90 +92,41 @@ export class Vector implements HomogeneousCoords, Addable {
    */
   static crossProduct = (v1: Vector, v2: Vector): Vector => {
     const res = vec3.create();
-    vec3.cross(res, v1.vec3(), v2.vec3());
+    vec3.cross(res, v1.vec3, v2.vec3);
     return Vector.fromVec3(res);
   };
 
   static dot = (v1: Vector, v2: Vector): number => {
-    return vec3.dot(v1.vec3(), v2.vec3());
+    return vec3.dot(v1.vec3, v2.vec3);
   };
 
   //#endregion Static builders
 
-  toString(): string {
-    return `Vector: [${this.x}, ${this.y}, ${this.z}]`;
-  }
+  //#region GeoEntity implementation
 
-  map(t: Transform | Frame): Vector {
+  map(t: Transform): Vector {
     const p = new Vector();
     vec4.transformMat4(p._coord, this._coord, t.directMatrix);
     return p;
   }
 
-  unMap(t: Transform | Frame): Vector {
+  unMap(t: Transform): Vector {
     const p = new Vector();
     vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
     return p;
   }
 
   relative(f: Frame): Vector {
-    return this.map(f);
+    return this.map(f.toTransform());
   }
 
   absolute(f: Frame): Vector {
-    return this.unMap(f);
+    return this.unMap(f.toTransform());
   }
 
-  /**
-   * Return a new vector by multiplying this one by a scalar
-   * @param s - the multiplier
-   */
-  scale = (s: number): Vector => {
-    const v = new Vector();
-    vec4.scale(v._coord, this._coord, s);
-    return v;
-  };
+  //#endregion GeoEntity implementation
 
-  /**
-   * Compute the dot product of this vector with another vector
-   * @param v - the other vector
-   * @returns a scalar
-   */
-  dot = (v: Vector): number => {
-    return vec3.dot(this.vec3(), v.vec3());
-  };
-
-  /**
-   * Compute the cross product of this vector with another vector
-   * @param v2 - the other vector
-   * @returns
-   */
-  crossProduct = (v2: Vector): Vector => {
-    const res = vec3.create();
-    vec3.cross(res, this.vec3(), v2.vec3());
-    return Vector.fromVec3(res);
-  };
-
-  /**
-   * Add two vectors
-   * @param v - the other vector
-   * @returns this vector plus the other vector
-   */
-  add = (v: Vector): Vector => {
-    const res = new Vector();
-    vec4.add(res._coord, this._coord, v._coord);
-    return res;
-  };
-
-  /**
-   * Component-wise multiplication
-   * @param v
-   */
-  multiply = (v: Vector): Vector => {
-    const res = new Vector();
-    vec4.multiply(res._coord, this._coord, v._coord);
-    return res;
-  };
+  //#region Simple Getters
 
   get isUnitVector(): boolean {
     return false;
@@ -234,11 +181,11 @@ export class Vector implements HomogeneousCoords, Addable {
     return x * x + y * y + z * z;
   }
 
-  vec3(): Readonly<vec3> {
+  get vec3(): Readonly<vec3> {
     return vec3.fromValues(this.x, this.y, this.z);
   }
 
-  vec4(): Readonly<vec4> {
+  get vec4(): Readonly<vec4> {
     return vec4.fromValues(this.x, this.y, this.z, 0.0);
   }
 
@@ -248,7 +195,68 @@ export class Vector implements HomogeneousCoords, Addable {
   }
 
   /* v8 ignore next 3 */
-  get asFloat32Array(): ArrayBuffer {
+  get asFloat32Array(): Float32Array<ArrayBuffer> {
     return new Float32Array(this.coordinates);
   }
+
+  //#endregion Simple Getters
+
+  toString(): string {
+    return `Vector: [${this.x}, ${this.y}, ${this.z}]`;
+  }
+
+  get isVector(): boolean {
+    return true;
+  }
+
+  /**
+   * Return a new vector by multiplying this one by a scalar
+   * @param s - the multiplier
+   */
+  scale = (s: number): Vector => {
+    const v = new Vector();
+    vec4.scale(v._coord, this._coord, s);
+    return v;
+  };
+
+  /**
+   * Compute the dot product of this vector with another vector
+   * @param v - the other vector
+   * @returns a scalar
+   */
+  dot = (v: Vector): number => {
+    return vec3.dot(this.vec3, v.vec3);
+  };
+
+  /**
+   * Compute the cross product of this vector with another vector
+   * @param v2 - the other vector
+   * @returns
+   */
+  crossProduct = (v2: Vector): Vector => {
+    const res = vec3.create();
+    vec3.cross(res, this.vec3, v2.vec3);
+    return Vector.fromVec3(res);
+  };
+
+  /**
+   * Add two vectors
+   * @param v - the other vector
+   * @returns this vector plus the other vector
+   */
+  add = (v: Vector): Vector => {
+    const res = new Vector();
+    vec4.add(res._coord, this._coord, v._coord);
+    return res;
+  };
+
+  /**
+   * Component-wise multiplication
+   * @param v
+   */
+  multiply = (v: Vector): Vector => {
+    const res = new Vector();
+    vec4.multiply(res._coord, this._coord, v._coord);
+    return res;
+  };
 }

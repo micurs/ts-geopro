@@ -1,5 +1,5 @@
 import { vec2, type ReadonlyMat4 } from 'gl-matrix';
-import type { Rotation, Vector } from './index.ts';
+import type { Rotation, Vector, Frame, Point, UnitVector, Transform, Ray } from './index.ts';
 
 export type Elem<T> = T extends (infer U)[] ? U : never;
 
@@ -79,8 +79,6 @@ export interface HomogeneousCoords {
   readonly x: number;
   readonly y: number;
   readonly z: number;
-
-  map(t: GeoMatrix): HomogeneousCoords;
 }
 
 export interface Addable {
@@ -102,3 +100,12 @@ export interface InvertibleGroMatrix {
  * @public
  */
 export type AffineGeoMatrix = GeoMatrix & InvertibleGroMatrix;
+
+export type GeoEntity<T> = {
+  absolute: (frame: Frame) => T;
+  relative: (frame: Frame) => T;
+  map: (t: Transform) => T;
+  unMap: (t: Transform) => T;
+};
+
+export type GeoEntities = Point | Vector | Frame | UnitVector | Ray;

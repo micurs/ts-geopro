@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { vec4, vec3 } from 'gl-matrix';
 
-import { Point, Vector } from '../src';
+import { Point, Vector } from '../src/index.ts';
 
 describe('Vector basic operations', () => {
   test('Set a vector with coordinates', () => {
@@ -16,10 +16,10 @@ describe('Vector basic operations', () => {
     expect(vec.isUnitVector).toBe(false);
     expect(vec.isVector).toBe(true);
     expect(vec.coordinates).toEqual([10, 20, 15, 0]);
-    expect(vec.vec3()).toEqual(v3);
-    expect(vec.vec4()).toEqual(v4);
-    expect(vecFromVec3.vec4()).toEqual(v4);
-    expect(vecFromVec4.vec3()).toEqual(v3);
+    expect(vec.vec3).toEqual(v3);
+    expect(vec.vec4).toEqual(v4);
+    expect(vecFromVec3.vec4).toEqual(v4);
+    expect(vecFromVec4.vec3).toEqual(v3);
 
     expect(vec.triplet).toEqual([10, 20, 15]);
   });
