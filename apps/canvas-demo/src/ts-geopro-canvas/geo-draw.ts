@@ -70,3 +70,13 @@ export const drawRay = (vp: Viewport) => (r: Ray) => {
   drawVector(vp)(r.o, r.d);
   drawPoint(vp)(r.o);
 };
+
+export const drawLine = (vp: Viewport) => (start: Point, end: Point) => {
+  const { ctx, scaleFactor } = vp;
+  const scale = Math.min(0.01, scaleFactor / 2);
+  ctx.beginPath();
+  ctx.lineWidth = 2 * scale;
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(end.x, end.y);
+  ctx.stroke();
+};

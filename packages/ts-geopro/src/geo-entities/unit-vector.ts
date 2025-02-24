@@ -167,6 +167,10 @@ export class UnitVector implements HomogeneousCoords, Addable, GeoEntity<UnitVec
     return `UnitVector: [${this.x}, ${this.y}, ${this.z}]`;
   }
 
+  toVector(): Vector {
+    return Vector.fromValues(this.x, this.y, this.z);
+  }
+
   invert(): UnitVector {
     const p = new UnitVector();
     vec4.negate(p._coord, this._coord);

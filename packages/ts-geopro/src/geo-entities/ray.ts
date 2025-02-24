@@ -85,4 +85,26 @@ export class Ray implements GeoEntity<Ray> {
   }
 
   //#endregion Simple Getters
+
+  /**
+   * Compute the point at a given distance along the ray
+   * @param t - the distance along the ray
+   * @returns the point at distance t along the ray
+   */
+  on(...ts: number[]): Point[] {
+    return ts.map((t) => this._origin.add(this._direction.toVector().scale(t)));
+  }
+
+  /**
+   * Project a point onto the ray.
+   * This is the point on the ray that is closest to the given point.
+   * @param p - any point in space
+   * @returns a new point on the ray that is closest to the given point
+   */
+  project(p: Point): Point {
+    const v1 = Vector.fromPoints(p, this._origin);
+    const v2 = this._direction.toVector();
+    const t = Vector.dot(v1, v2);
+    return this._origin.add(v2.scale(t));
+  }
 }
