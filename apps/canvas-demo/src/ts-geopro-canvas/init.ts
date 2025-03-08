@@ -1,6 +1,6 @@
 import { getViewport } from './viewport.ts';
 import { renderPerfectGrid } from './perfect-grid.ts';
-import type { RenderFn, Size2D, Coord2D, InitOptions, Renderer } from './types.ts';
+import type { RenderFn, Size2D, Coord2D, InitOptions, Renderer, UpdaterFn, Updater } from './types.ts';
 import { getCanvas, getContext, mousePanObserver, resizeObserver, zoomObserver } from './utils.ts';
 
 const clear = (ctx: CanvasRenderingContext2D, [width, height]: [number, number]) => {
@@ -29,55 +29,65 @@ const setup = (options: InitOptions) => {
   return viewport;
 };
 
+interface Options {
+  zoom: number;
+  centerCoord: Coord2D;
+}
+
 /**
  *
  * @param canvasElName - the id of the canvas element
  * @param renderer a render function
  * @returns
  */
-export const init = (canvasElName: string): [() => void, Renderer] => {
-  const renderingFns = new Set<RenderFn>();
-  let zoom = 10.0;
-  let pan: Coord2D = [0.0, 0.0];
-  let scaleFactor = 1;
+export const init = (canvasElName: string, options: Partial<Options> = {}): [Updater, Renderer] => {
+  let renderingFn: RenderFn | null = null;
+  let updaterFn: UpdaterFn | null = null;
+  let zoom = options.zoom ?? 10.0;
+  let centerPoint: Coord2D = options.centerCoord ?? [0.0, 0.0];
+  let scaleFactor = 2;
   const canvas: HTMLCanvasElement = getCanvas(canvasElName);
   const ctx = getContext(canvas);
 
   // Main drawing function.
-  const draw = (newZoom?: number) => {
-    zoom = newZoom ?? zoom;
-    const viewport = setup({ canvas, ctx, zoom, pan });
+  const draw = () => {
+    const viewport = setup({ canvas, ctx, zoom, pan: centerPoint });
+    scaleFactor = viewport.scaleFactor;
     clear(ctx, viewport.dimensions);
     renderPerfectGrid(ctx, viewport);
-    renderingFns.forEach((fn) => fn(viewport));
-    scaleFactor = viewport.scaleFactor;
+    updaterFn && updaterFn(performance.now());
+    renderingFn && renderingFn(viewport);
+    requestAnimationFrame(draw);
   };
 
   // Observe the resize of the canvas and set a resizeObserver to reset
   // canvas dimension and redraw
-  new ResizeObserver(resizeObserver(draw, canvas)).observe(canvas);
+  new ResizeObserver(resizeObserver(canvas)).observe(canvas);
 
   // Track the wheel event with a zoom Observer
-  canvas.addEventListener('wheel', zoomObserver(draw, zoom));
+  canvas.addEventListener(
+    'wheel',
+    zoomObserver((z) => {
+      zoom = z;
+    }, zoom)
+  );
 
   // Track mouse-down mouse-move mouse-up with a panObserver
-  mousePanObserver(canvas, (prevPan, dx, dy) => {
-    pan = [prevPan[0] + dx * scaleFactor, prevPan[1] + dy * scaleFactor];
-    draw();
-    return pan;
+  mousePanObserver(canvas, centerPoint, (prevPan, dx, dy) => {
+    centerPoint = [prevPan[0] + dx * scaleFactor, prevPan[1] + dy * scaleFactor];
+    return centerPoint;
   });
 
-  draw(zoom);
+  draw();
 
   // return the function that can be used to add and remove
   // renderers to the render list.
   return [
-    draw,
+    (updater: UpdaterFn) => {
+      updaterFn = updater;
+    },
     (renderer: RenderFn) => {
-      renderingFns.add(renderer);
-      return () => {
-        renderingFns.delete(renderer);
-      };
+      renderingFn = renderer;
     },
   ];
 };

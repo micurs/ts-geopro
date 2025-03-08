@@ -29,6 +29,8 @@ export type InitOptions = {
 
 export type RenderFn = (viewport: Viewport) => void;
 
+export type UpdaterFn = (time: number) => void;
+
 export interface Camera {
   transformation: Transform;
 }
@@ -38,3 +40,5 @@ export type Polyline = Point[];
 export type Lines = [Point, Point][];
 
 export type Renderer = (renderer: RenderFn) => void;
+
+export type Updater = (updater: UpdaterFn) => void;

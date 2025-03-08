@@ -16,18 +16,18 @@ export const getContext = (canvas: HTMLCanvasElement) => {
   return ctx;
 };
 
-export const zoomObserver = (draw: (z: number) => void, initZoom: number) => {
-  let zoom = initZoom;
+export const zoomObserver = (zoom: (z: number) => void, initZoom: number) => {
+  let zoomFactor = initZoom;
   return (event: WheelEvent) => {
     const delta = 1 + event.deltaY / 1000;
-    zoom *= delta;
-    zoom = Math.max(0.000009, zoom);
-    zoom = Math.min(10000000, zoom);
-    draw(zoom);
+    zoomFactor *= delta;
+    zoomFactor = Math.max(0.000009, zoomFactor);
+    zoomFactor = Math.min(10000000, zoomFactor);
+    zoom(zoomFactor);
   };
 };
 
-export const resizeObserver = (draw: () => void, canvas: HTMLCanvasElement) => (entries: ResizeObserverEntry[]) => {
+export const resizeObserver = (canvas: HTMLCanvasElement) => (entries: ResizeObserverEntry[]) => {
   const entry = entries[0];
   if (!entry) {
     return;
@@ -42,15 +42,18 @@ export const resizeObserver = (draw: () => void, canvas: HTMLCanvasElement) => (
   if (canvas.height !== Math.floor(contentBoxSize.blockSize)) {
     canvas.height = Math.floor(contentBoxSize.blockSize);
   }
-  draw();
 };
 
-export const mousePanObserver = (canvas: HTMLCanvasElement, cb: (pp: Coord2D, x: number, y: number) => Coord2D) => {
+export const mousePanObserver = (
+  canvas: HTMLCanvasElement,
+  centerPoint: Coord2D,
+  cb: (pp: Coord2D, x: number, y: number) => Coord2D
+) => {
   let mouseDown = false;
   let x = 0;
   let y = 0;
-  let prevPan: Coord2D = [0, 0];
-  let pan: Coord2D = [0, 0];
+  let prevPan: Coord2D = centerPoint;
+  let pan: Coord2D = centerPoint;
   canvas.addEventListener('mousedown', (event) => {
     mouseDown = true;
     x = event.clientX;

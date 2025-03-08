@@ -6,19 +6,23 @@ import type { Viewport } from './ts-geopro-canvas/types.ts';
 import { drawFrame, drawLine, drawPoint, drawRay } from './ts-geopro-canvas/geo-draw.ts';
 
 try {
-  const [draw, render] = init('app-canvas');
-  const dx = 3;
-  const dy = 3;
-  const frameTransf = Transform.fromRotationZ(deg2rad(0.15));
-  const relPointTransf = Transform.fromRotationZ(deg2rad(-0.05));
-  let relEntities = Array.from({ length: 10 }, () => Point.from(Math.random() * dx * 2 - dx, Math.random() * dy * 2 - dy, 0));
+  const [update, render] = init('app-canvas', {
+    zoom: 20,
+    centerCoord: [0, 0],
+  });
+  const dx = 1;
+  const dy = 1;
+  const frameTransf = Transform.fromRotationZ(deg2rad(0.35));
+  const relPointTransf = Transform.fromRotationZ(deg2rad(0.0));
+  const relRayTransf = Transform.fromRotationZ(deg2rad(-0.3));
+  let relEntities = Array.from({ length: 1 }, () => Point.from(Math.random() * dx * 2 - dx, Math.random() * dy * 2 - dy, 0));
   let frame = Frame.from2Vectors(
-    Point.from(-1.2, 0.9, 0), // origin
+    Point.from(-2.2, 1.9, 0), // origin
     Vector.from(0, 0, 1), // z
     Vector.from(1, 0, 0)
   );
 
-  let rays = Array.from({ length: 2 }, () =>
+  let rays = Array.from({ length: 4 }, () =>
     Ray.from(
       Point.from(Math.random() * dx * 2 - dx, Math.random() * dy * 2 - dy, 0), // origin
       Vector.from(Math.random() * 2 - 1, Math.random() * 2 - 1, 0) // direction
@@ -28,12 +32,10 @@ try {
   let absEntities = relEntities.map((rp) => rp.absolute(frame));
   const rotateFrame = map(frameTransf);
   const rotatePoint = map(relPointTransf);
+  const rotateRay = map(relRayTransf);
   let rayPoints = rays.flatMap((r) => r.on(-1));
 
-  render((vp: Viewport) => {
-    drawFrame(vp)(frame);
-  });
-
+  // Rendering function
   render((vp: Viewport) => {
     const drawP = drawPoint(vp);
     const drawR = drawRay(vp);
@@ -45,14 +47,16 @@ try {
     vp.ctx.strokeStyle = 'blue';
     vp.ctx.setLineDash([10 * vp.scaleFactor, 5 * vp.scaleFactor]);
     rayPoints.forEach((p, i) => {
-      vp.ctx.strokeStyle = `rgba(${100 + i},${100 + i},${100 + i}, 0.2)`;
+      vp.ctx.strokeStyle = `rgba(${100 + i},${100 + i},${100 + i}, 0.04)`;
       drawLine(vp)(absEntities[i % absEntities.length]!, p);
     });
     vp.ctx.setLineDash([]);
     rays.forEach(drawR);
+    drawFrame(vp)(frame);
   });
 
-  setInterval(() => {
+  // Update function
+  update(() => {
     // Transform the frame and the points
     frame = rotateFrame(frame);
     // Transformation to compute absolute coordinates for Frame relative entities
@@ -62,11 +66,9 @@ try {
     relEntities = relEntities.map(rotatePoint);
     absEntities = relEntities.map(frameToWorld);
 
-    rays = rays.map(rotatePoint);
     rayPoints = rays.flatMap((r) => absEntities.map((p) => r.project(p)));
-
-    draw();
-  }, 1000 / 60);
+    rays = rays.map(rotateRay);
+  });
 } catch (e) {
   alert(`Error initializing the canvas: ${(e as Error).message} )`);
 }
