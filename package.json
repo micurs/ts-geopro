@@ -10,7 +10,8 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "cli-demos": "deno apps/cli-demos/point-vector.ts",
-    "version-update": "deno --allow-read --allow-write --allow-env scripts/update-versions.ts patch"
+    "version-update": "deno --allow-read --allow-write --allow-env scripts/update-versions.ts patch",
+    "lint": "turbo run lint"
   },
   "packageManager": "pnpm@10.2.0"
 }

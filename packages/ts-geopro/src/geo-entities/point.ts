@@ -4,7 +4,7 @@ import { Frame } from './frame.ts';
 import { Transform } from '../transform.ts';
 import { UnitVector } from './unit-vector.ts';
 
-import type { GeoEntity, GeoMatrix, HomogeneousCoords, VecEntries } from '../types.ts';
+import type { GeoEntity, HomogeneousCoords, VecEntries } from '../types.ts';
 import { isUnitVector, isVec4, isVector } from '../operations.ts';
 
 export class Point implements HomogeneousCoords, GeoEntity<Point> {

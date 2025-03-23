@@ -2,7 +2,10 @@ name: Verify Pull Request
 
 on:
   pull_request:
-    types: [opened, synchronize] # Trigger the workflow when a PR is opened or updated
+    types: [
+      opened,
+      synchronize,
+    ] # Trigger the workflow when a PR is opened or updated
 
 jobs:
   test-pr:
@@ -17,6 +20,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20 # Specify the Node.js version
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x # Specify the Deno version
 
       - name: Install pnpm
         run: npm install -g pnpm
