@@ -27,7 +27,7 @@ export const zoomObserver = (zoom: (z: number) => void, initZoom: number) => {
   };
 };
 
-export const resizeObserver = (canvas: HTMLCanvasElement) => (entries: ResizeObserverEntry[]) => {
+export const resizeObserver = (canvas: HTMLCanvasElement, draw: () => void) => (entries: ResizeObserverEntry[]) => {
   const entry = entries[0];
   if (!entry) {
     return;
@@ -36,12 +36,15 @@ export const resizeObserver = (canvas: HTMLCanvasElement) => (entries: ResizeObs
   if (!contentBoxSize) {
     return;
   }
-  if (canvas.width !== Math.floor(contentBoxSize.inlineSize)) {
-    canvas.width = Math.floor(contentBoxSize.inlineSize);
+  if (Math.abs(canvas.width - contentBoxSize.inlineSize) > 1) {
+    canvas.width = Math.floor(contentBoxSize.inlineSize); //Math.floor(contentBoxSize.inlineSize - 2);
+    canvas.style.width = `${canvas.width}px`;
   }
-  if (canvas.height !== Math.floor(contentBoxSize.blockSize)) {
+  if (Math.abs(canvas.height - contentBoxSize.blockSize) > 1) {
     canvas.height = Math.floor(contentBoxSize.blockSize);
+    canvas.style.height = `${canvas.height}px`;
   }
+  draw();
 };
 
 export const mousePanObserver = (
@@ -54,19 +57,21 @@ export const mousePanObserver = (
   let y = 0;
   let prevPan: Coord2D = centerPoint;
   let pan: Coord2D = centerPoint;
-  canvas.addEventListener('mousedown', (event) => {
+  canvas.addEventListener('pointerdown', (event) => {
     mouseDown = true;
     x = event.clientX;
     y = event.clientY;
     prevPan = pan;
+    canvas.setPointerCapture(event.pointerId);
   });
-  canvas.addEventListener('mousemove', (event) => {
+  canvas.addEventListener('pointermove', (event) => {
     if (!mouseDown) {
       return;
     }
     pan = cb(prevPan, event.clientX - x, event.clientY - y);
   });
-  canvas.addEventListener('mouseup', () => {
+  canvas.addEventListener('pointerup', (event) => {
     mouseDown = false;
+    canvas.releasePointerCapture(event.pointerId);
   });
 };

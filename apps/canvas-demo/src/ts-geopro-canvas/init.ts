@@ -32,6 +32,7 @@ const setup = (options: InitOptions) => {
 interface Options {
   zoom: number;
   centerCoord: Coord2D;
+  position?: (centerPoint: Coord2D, zoom: number) => void;
 }
 
 /**
@@ -48,6 +49,7 @@ export const init = (canvasElName: string, options: Partial<Options> = {}): [Upd
   let scaleFactor = 2;
   const canvas: HTMLCanvasElement = getCanvas(canvasElName);
   const ctx = getContext(canvas);
+  const canvasCont = canvas?.parentElement;
 
   // Main drawing function.
   const draw = () => {
@@ -62,19 +64,22 @@ export const init = (canvasElName: string, options: Partial<Options> = {}): [Upd
 
   // Observe the resize of the canvas and set a resizeObserver to reset
   // canvas dimension and redraw
-  new ResizeObserver(resizeObserver(canvas)).observe(canvas);
+  new ResizeObserver(resizeObserver(canvas, draw)) // Resizing callback on canvas and capable of draw()
+    .observe(canvasCont!, { box: 'device-pixel-content-box' }); // Observe the parent element of the canvas
 
   // Track the wheel event with a zoom Observer
   canvas.addEventListener(
     'wheel',
     zoomObserver((z) => {
       zoom = z;
+      options.position?.(centerPoint, zoom);
     }, zoom)
   );
 
   // Track mouse-down mouse-move mouse-up with a panObserver
   mousePanObserver(canvas, centerPoint, (prevPan, dx, dy) => {
     centerPoint = [prevPan[0] + dx * scaleFactor, prevPan[1] + dy * scaleFactor];
+    options.position?.(centerPoint, zoom);
     return centerPoint;
   });
 

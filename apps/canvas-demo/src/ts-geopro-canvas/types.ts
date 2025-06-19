@@ -1,4 +1,4 @@
-import { Point, Transform } from '@micurs/ts-geopro';
+import type { Point, Transform, Frame, Ray } from '@micurs/ts-geopro';
 
 export type PointMapper = (p: Point) => Point;
 
@@ -42,3 +42,27 @@ export type Lines = [Point, Point][];
 export type Renderer = (renderer: RenderFn) => void;
 
 export type Updater = (updater: UpdaterFn) => void;
+
+export type RenderableType = Point | Ray | Frame;
+
+interface RenderableEntity {
+  frame: Frame;
+}
+export interface RenderablePoint extends RenderableEntity {
+  type: 'point';
+  point: Point;
+}
+export interface RenderableRay extends RenderableEntity {
+  type: 'ray';
+  ray: Ray;
+}
+export interface RenderableFrame extends RenderableEntity {
+  type: 'frame';
+  frame: Frame;
+}
+
+export type Renderable = RenderablePoint | RenderableRay | RenderableFrame;
+
+export type Scene = {
+  entities: Renderable[];
+};

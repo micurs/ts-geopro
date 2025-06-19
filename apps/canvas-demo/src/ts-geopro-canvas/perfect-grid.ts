@@ -1,14 +1,15 @@
 import type { Viewport } from './types.ts';
 
 export const renderPerfectGrid = (ctx: CanvasRenderingContext2D, viewport: Viewport) => {
+  const gridSteps = 10;
   const [dimX, dimY] = viewport.dimensions;
   const [panX, panY] = viewport.pan;
 
   const zoom = Math.max(dimX, dimY);
   const d = Math.log10(zoom);
   const g = Math.floor(d);
-  const G = Math.pow(10, g); // This is our optimal step!
-  const GM = G / 10; // This is our optimal sub-step!
+  const G = Math.pow(gridSteps, g); // This is our optimal step!
+  const GM = G / gridSteps; // This is our optimal sub-step!
 
   const semDimX = dimX / 2;
   const semDimY = dimY / 2;
@@ -19,8 +20,8 @@ export const renderPerfectGrid = (ctx: CanvasRenderingContext2D, viewport: Viewp
 
   // Dense Grid
   ctx.lineWidth = viewport.scaleFactor;
-  ctx.strokeStyle = 'grey';
-  ctx.globalAlpha = alpha * 0.5;
+  ctx.strokeStyle = `white`;
+  ctx.globalAlpha = alpha * 0.3;
   ctx.beginPath();
   for (let x = GM; x <= limX[1]; x += GM) {
     ctx.moveTo(x, limY[1]);
@@ -42,8 +43,8 @@ export const renderPerfectGrid = (ctx: CanvasRenderingContext2D, viewport: Viewp
 
   // Main Grid
   ctx.lineWidth = viewport.scaleFactor * (alpha + 1);
-  ctx.strokeStyle = 'grey';
-  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = 'white';
+  ctx.globalAlpha = 0.3;
   ctx.beginPath();
   for (let x = G; x <= limX[1]; x += G) {
     ctx.moveTo(x, limY[1]);

@@ -8,12 +8,17 @@
   </head>
   <body>
     <div id="app">
-      <div id="app-cmd"></div>
-      <canvas
-        id="app-canvas"
-        height="800"
-      >
-      </canvas>
+      <div id="app-canvas-2d">
+        <canvas id="app-canvas"> </canvas>
+      </div>
+      <div id="app-cmd" class="overlay-panel"></div>
+      <div id="app-zoom" class="overlay-panel"></div>
+      <div id="app-bar" class="overlay-panel">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

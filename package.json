@@ -3,7 +3,11 @@
   "private": true,
   "devDependencies": {
     "@total-typescript/tsconfig": "^1.0.4",
-    "turbo": "^2.4.2"
+    "@types/node": "^22.15.29",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vite-plugin-dts": "^4.5.4"
   },
   "scripts": {
     "dev": "turbo run dev",
@@ -13,5 +17,5 @@
     "version-update": "deno --allow-read --allow-write --allow-env scripts/update-versions.ts patch",
     "lint": "turbo run lint"
   },
-  "packageManager": "pnpm@10.2.0"
+  "packageManager": "pnpm@10.11.1"
 }
