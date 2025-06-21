@@ -10,7 +10,8 @@
     "vite-plugin-dts": "^4.5.4"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev:c": "turbo run dev:c",
+    "dev:q": "turbo run dev:q",
     "build": "turbo run build",
     "test": "turbo run test",
     "cli-demos": "deno apps/cli-demos/point-vector.ts",

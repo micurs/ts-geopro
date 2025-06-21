@@ -13,8 +13,17 @@
       "outputs": ["dist/**"],
       "cache": false
     },
-    "dev": {
-      "persistent": true
+    "dev:q": {
+      "persistent": true,
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "dev:c": {
+      "persistent": true,
+      "dependsOn": [
+        "^build"
+      ]
     }
   }
 }

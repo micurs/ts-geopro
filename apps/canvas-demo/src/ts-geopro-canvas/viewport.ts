@@ -8,7 +8,6 @@ import type { Viewport } from './types.ts';
  * @param dim - dimension of the canvas
  * @param zoom - desired size of the min dimension
  */
-
 export const getViewport = (
   ctx: CanvasRenderingContext2D,
   dim: [number, number],

@@ -1,0 +1,26 @@
+/* @tailwind base;
+@tailwind components; */
+@tailwind utilities;
+
+@reference "tailwindcss";
+
+:root {
+  --app-border: 1px;
+  --app-bgcolor: theme(colors.stone.800);
+  --app-color: theme(colors.slate.500);
+  --app-grid-sep: 15px;
+  --panel-corner-radius: 9px;
+}
+
+body {
+  @apply flex items-stretch justify-stretch m-0 p-0 w-[100vw] h-[100vh]
+    bg-slate-800 overflow-hidden;
+}
+
+#app {
+  @apply grid overflow-hidden m-[1px];
+  border: solid var(--app-border) var(--app-color);
+  border-radius: var(--panel-corner-radius);
+  width: calc(100vw - var(--app-border) * 2);
+  height: calc(100vh - var(--app-border) * 2);
+}
