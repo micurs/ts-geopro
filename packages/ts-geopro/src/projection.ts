@@ -60,7 +60,6 @@ export class Projection implements GeoMatrix, InvertibleGroMatrix {
    */
   apply<T>(v: GeoEntity<T>): T {
     const transformed = v.map(this);
-    console.log('transformed', transformed);
     if (transformed instanceof Point) {
       if (transformed.w === 0) {
         return Point.from(NaN, NaN, NaN, NaN) as T;

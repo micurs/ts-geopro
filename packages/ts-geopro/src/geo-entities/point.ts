@@ -27,10 +27,13 @@ export class Point implements HomogeneousCoords, GeoEntity<Point> {
    * @returns a new Point
    */
   static from(v: vec4): Point;
+  static from(v: Float32Array): Point;
   static from(v: Vector | UnitVector): Point;
   static from(x: number, y: number, z: number, w?: number): Point;
   static from(x: number | vec4 | Vector | UnitVector, y?: number, z?: number, w: number = 1): Point {
-    if (isVec4(x)) {
+    if (x instanceof Float32Array) {
+      return Point.fromVec4(vec4.fromValues(x[0]! / x[3]!, x[1]! / x[3]!, x[2]! / x[3]!, 1));
+    } else if (isVec4(x)) {
       return Point.fromVec4(x);
     } else if (isVector(x) || isUnitVector(x)) {
       return Point.fromVector(x);
@@ -76,6 +79,7 @@ export class Point implements HomogeneousCoords, GeoEntity<Point> {
   map(t: GeoMatrix): Point {
     const _coord: vec4 = vec4.create();
     vec4.transformMat4(_coord, this._coord, t.directMatrix);
+    _coord[3] = Math.max(_coord[3], 0.01); // Avoid division by zero and negative w
     return Point.from(_coord);
   }
 
