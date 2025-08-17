@@ -37,6 +37,11 @@ ts-geopro provides a comprehensive set of tools for handling 3D geometric operat
   - Composite transformations
   - Matrix-based operations using gl-matrix
 
+- **Projections**: Full support for 3D projection:
+  - Orthographic projection
+  - Perspective projection
+
+
 ## Installation
 
 Depending on your environment and package manager use one of the following:
@@ -91,6 +96,19 @@ console.log('Direction in between two vectors: ', ` ${vDir1} + ${vDir2} =`, inBe
 ### Geometric Transformations
 
 ```typescript
+import { Point, Projection } from '@micurs/ts-geopro';
+
+const p = Point.from(1, 1, -1);
+
+const perspective = Projection.perspective(Math.PI / 4, 1, 0.1, 100);
+const projected = perspective.apply(p);
+
+console.log('Perspective projection: ', projected.toString());
+
+const orthographic = Projection.orthographic(-1, 1, -1, 1, 0.1, 100);
+const projected2 = orthographic.apply(p);
+
+console.log('Orthographic projection: ', projected2.toString());
 ```
 
 ## Development
@@ -130,6 +148,7 @@ The library provides several key classes:
 - `Point`: Represents a point in 3D space
 - `Transform`: Represents a geometric affine 3D transformation
 - `Rotation`: Represents rotation only transformations
+- `Projection`: Represents a projection transformation
 
 Each class is fully documented with TypeScript types and JSDoc comments.
 

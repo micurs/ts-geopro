@@ -9,3 +9,4 @@ export * from './geo-entities/ray.ts';
 
 export * from './math.ts';
 export * from './operations.ts';
+export * from './projection.ts';

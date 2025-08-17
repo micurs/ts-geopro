@@ -1,10 +1,10 @@
 import { mat4, vec3, type ReadonlyMat4 } from 'gl-matrix';
+import type { AffineGeoMatrix, Col, GeoMatrix, InvertibleGroMatrix, Row } from './types.ts';
 import { Point } from './geo-entities/point.ts';
 import { UnitVector } from './geo-entities/unit-vector.ts';
 import { Vector } from './geo-entities/vector.ts';
 import { Rotation } from './rotation.ts';
 import { compose } from './operations.ts';
-import type { AffineGeoMatrix, Col, GeoEntity, GeoMatrix, InvertibleGroMatrix, Row } from './types.ts';
 import { Frame } from './index.ts';
 
 export class Transform implements GeoMatrix, InvertibleGroMatrix {
@@ -35,14 +35,6 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
   get inverseMatrix(): mat4 {
     return this._inverse;
   }
-
-  // get values(): IterableIterator<number> {
-  //   return this._direct.values();
-  // }
-
-  // get inverseValues(): IterableIterator<number> {
-  //   return this._inverse.values();
-  // }
 
   //#endregion
 
@@ -83,16 +75,6 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
     t._isIdentity = false;
     return t;
   }
-  /* c8 ignore stop */
-
-  /* c8 ignore start */
-  // static perspective(fovy: number, aspect: number, near: number, far: number) {
-  //   const t = new Transform();
-  //   mat4.perspective(t._direct, fovy, aspect, near, far);
-  //   mat4.invert(t._inverse, t._direct);
-  //   t._isIdentity = false;
-  //   return t;
-  // }
   /* c8 ignore stop */
 
   static invert(s: Transform): Transform {
@@ -219,14 +201,6 @@ export class Transform implements GeoMatrix, InvertibleGroMatrix {
 
   isFrame(): boolean {
     return false;
-  }
-
-  /**
-   * Applies the transformation to a point
-   * @param p - the point to transform
-   */
-  apply<T>(v: GeoEntity<T>): T {
-    return v.map(this);
   }
 
   /**

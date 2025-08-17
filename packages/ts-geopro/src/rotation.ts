@@ -1,5 +1,6 @@
 import { quat, mat3 } from 'gl-matrix';
 import { Transform } from './transform.ts';
+import { UnitVector } from './geo-entities/unit-vector.ts';
 
 export class Rotation {
   _direct: quat;
@@ -47,6 +48,13 @@ export class Rotation {
     mat3.fromMat4(rm, t.directMatrix);
     const r = new Rotation();
     r._direct = quat.fromMat3(r._direct, rm);
+    quat.invert(r._inverse, r._direct);
+    return r;
+  }
+
+  static fromAxisAngle(axis: UnitVector, angle: number): Rotation {
+    const r = new Rotation();
+    quat.setAxisAngle(r._direct, axis.vec3, angle);
     quat.invert(r._inverse, r._direct);
     return r;
   }

@@ -1,5 +1,5 @@
+import type { Viewport, Coord2D, ViewportSettings } from './types.ts';
 import { compose, Transform } from '@micurs/ts-geopro';
-import type { Viewport, Coord2D, ViewportSettings, Size2D } from './types.ts';
 
 export const getCanvas = (canvasElName: string) => {
   const canvas: HTMLCanvasElement = document.getElementById(canvasElName) as HTMLCanvasElement;

@@ -40,9 +40,9 @@ describe('Point basic operations', () => {
     const v2 = vec4.fromValues(10, 20, 15, 0);
     const p1 = Point.fromVec4(v1);
     const p2 = Point.fromVec4(v2);
-    expect(p1.x).toBe(1);
-    expect(p1.y).toBe(2);
-    expect(p1.z).toBe(1.5);
+    expect(p1.x).toBe(10);
+    expect(p1.y).toBe(20);
+    expect(p1.z).toBe(15);
     expect(p2.x).toBe(10);
     expect(p2.y).toBe(20);
     expect(p2.z).toBe(15);

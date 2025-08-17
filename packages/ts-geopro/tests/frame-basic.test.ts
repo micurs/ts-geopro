@@ -409,7 +409,7 @@ describe('Frame basic operations', () => {
     const frame = Frame.lookAt(eye, Point.from(1, 1, -1), UnitVector.fromValues(0, 1, 0));
     expect(frame.o).toEqual(eye);
 
-    expect(frame.i.x).toBe(-1);
+    expect(frame.i.x).toBe(1);
     expect(frame.i.y).toBe(0);
     expect(frame.i.z).toBe(0);
 
@@ -419,7 +419,7 @@ describe('Frame basic operations', () => {
 
     expect(frame.k.x).toBe(0);
     expect(frame.k.y).toBe(0);
-    expect(frame.k.z).toBe(-1);
+    expect(frame.k.z).toBe(1);
   });
 
   test('Create 2 frames and get one as relative to the other', () => {

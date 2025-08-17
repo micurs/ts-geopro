@@ -1,9 +1,8 @@
 import { Frame } from './frame.ts';
 import { Point } from './point.ts';
-import type { GeoEntity } from '../types.ts';
+import type { GeoEntity, GeoMatrix } from '../types.ts';
 import { UnitVector } from './unit-vector.ts';
 import { Vector } from './vector.ts';
-import { Transform } from '../transform.ts';
 
 export class Ray implements GeoEntity<Ray> {
   private _origin: Point;
@@ -38,13 +37,13 @@ export class Ray implements GeoEntity<Ray> {
 
   //#region GeoEntity implementation
 
-  map(t: Transform): Ray {
+  map(t: GeoMatrix): Ray {
     const to = this.o.map(t);
     const tv = this.d.map(t);
     return Ray.fromPointAndVector(to, tv);
   }
 
-  unMap(t: Transform): Ray {
+  unMap(t: GeoMatrix): Ray {
     const to = this.o.unMap(t);
     const tv = this.d.unMap(t);
     return Ray.fromPointAndVector(to, tv);

@@ -1,10 +1,9 @@
 import { vec3, vec4 } from 'gl-matrix';
 import { Vector } from './vector.ts';
 import { Frame } from './frame.ts';
-import { Transform } from '../transform.ts';
 import { UnitVector } from './unit-vector.ts';
 
-import type { GeoEntity, HomogeneousCoords, VecEntries } from '../types.ts';
+import type { GeoEntity, GeoMatrix, HomogeneousCoords, VecEntries } from '../types.ts';
 import { isUnitVector, isVec4, isVector } from '../operations.ts';
 
 export class Point implements HomogeneousCoords, GeoEntity<Point> {
@@ -30,13 +29,13 @@ export class Point implements HomogeneousCoords, GeoEntity<Point> {
   static from(v: vec4): Point;
   static from(v: Vector | UnitVector): Point;
   static from(x: number, y: number, z: number, w?: number): Point;
-  static from(x: number | vec4 | Vector | UnitVector, y?: number, z?: number): Point {
+  static from(x: number | vec4 | Vector | UnitVector, y?: number, z?: number, w: number = 1): Point {
     if (isVec4(x)) {
       return Point.fromVec4(x);
     } else if (isVector(x) || isUnitVector(x)) {
       return Point.fromVector(x);
     }
-    return Point.fromValues(x, y!, z!);
+    return Point.fromValues(x / w, y! / w, z! / w);
   }
 
   static fromValues(x: number, y: number, z: number): Point {
@@ -53,8 +52,7 @@ export class Point implements HomogeneousCoords, GeoEntity<Point> {
 
   static fromVec4(v: vec4): Point {
     const p = new Point();
-    const w = v[3] !== 0 ? v[3] : 1.0;
-    p._coord = vec4.fromValues(v[0] / w, v[1] / w, v[2] / w, 1.0);
+    p._coord = vec4.fromValues(v[0] / v[3], v[1] / v[3], v[2] / v[3], 1.0);
     return p;
   }
 
@@ -75,10 +73,10 @@ export class Point implements HomogeneousCoords, GeoEntity<Point> {
    * @param t - transformation or reference frame
    * @returns a new Point
    */
-  map(t: Transform): Point {
-    const p = new Point();
-    vec4.transformMat4(p._coord, this._coord, t.directMatrix);
-    return p;
+  map(t: GeoMatrix): Point {
+    const _coord: vec4 = vec4.create();
+    vec4.transformMat4(_coord, this._coord, t.directMatrix);
+    return Point.from(_coord);
   }
 
   /**
@@ -88,10 +86,10 @@ export class Point implements HomogeneousCoords, GeoEntity<Point> {
    * @param t - Transform or Frame
    * @returns a new Point
    */
-  unMap(t: Transform): Point {
-    const p = new Point();
-    vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
-    return p;
+  unMap(t: GeoMatrix): Point {
+    const _coord: vec4 = vec4.create();
+    vec4.transformMat4(_coord, this._coord, t.inverseMatrix);
+    return Point.from(_coord);
   }
 
   /**
@@ -127,12 +125,20 @@ export class Point implements HomogeneousCoords, GeoEntity<Point> {
     return this._coord[2];
   }
 
+  get w(): number {
+    return this._coord[3];
+  }
+
   get coordinates(): VecEntries {
     return [...this._coord.values()] as VecEntries;
   }
 
   get triplet(): [number, number, number] {
     return [this.x, this.y, this.z];
+  }
+
+  get xyzw(): [number, number, number, number] {
+    return [this.x, this.y, this.z, this.w];
   }
 
   get vec3(): Readonly<vec3> {

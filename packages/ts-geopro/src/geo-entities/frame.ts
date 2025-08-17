@@ -48,7 +48,7 @@ export class Frame implements GeoMatrix, AffineGeoMatrix, GeoEntity<Frame> {
    * @returns
    */
   static lookAt(eye: Point, target: Point, up: UnitVector): Frame {
-    const k = UnitVector.fromPoints(target, eye);
+    const k = UnitVector.fromPoints(eye, target);
     const i = UnitVector.crossProduct(up, k);
     const j = UnitVector.crossProduct(k, i);
 
@@ -83,6 +83,7 @@ export class Frame implements GeoMatrix, AffineGeoMatrix, GeoEntity<Frame> {
   static fromPointAndVectors = (o: Point, i: UnitVector, j: UnitVector, k: UnitVector): Frame => {
     const f = new Frame();
     const matValues: MatEntries = [...i.coordinates, ...j.coordinates, ...k.coordinates, ...o.coordinates] as MatEntries;
+    matValues[15] = 1;
 
     f._direct = mat4.fromValues(...matValues);
     mat4.invert(f._inverse, f._direct);
@@ -108,11 +109,11 @@ export class Frame implements GeoMatrix, AffineGeoMatrix, GeoEntity<Frame> {
    * @param f - the other transformation to compose with
    * @returns a new Frame
    */
-  map(f: Transform): Frame {
+  map(f: GeoMatrix): Frame {
     return this.compose(f) as Frame;
   }
 
-  unMap(f: Transform): Frame {
+  unMap(f: GeoMatrix): Frame {
     return this.compose(f.invert()) as Frame;
   }
 
@@ -229,14 +230,14 @@ export class Frame implements GeoMatrix, AffineGeoMatrix, GeoEntity<Frame> {
    * That is: resM = t.M · this.M
    * @param t - the transformation to compose with
    */
-  compose(t: AffineGeoMatrix): AffineGeoMatrix {
+  compose(t: GeoMatrix): GeoMatrix {
     const { directMatrix: dm1, inverseMatrix: im1 } = this;
     const { directMatrix: dm2, inverseMatrix: im2 } = t;
     const direct = mat4.create();
     const inverse = mat4.create();
     mat4.multiply(direct, dm2, dm1);
     mat4.multiply(inverse, im1, im2);
-    return Frame.fromMatrices(inverse, direct) as AffineGeoMatrix;
+    return Frame.fromMatrices(inverse, direct) as GeoMatrix;
   }
 
   toTransform(): Transform {

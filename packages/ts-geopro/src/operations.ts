@@ -5,6 +5,7 @@ import { Transform } from './transform.ts';
 import type { Addable, GeoEntity, GeoMatrix } from './types.ts';
 import { UnitVector } from './geo-entities/unit-vector.ts';
 import { Vector } from './geo-entities/vector.ts';
+import type { Projection } from './projection.ts';
 
 export type Mappable = Vector | Point | UnitVector;
 
@@ -35,7 +36,7 @@ export const isUnitVector = (d: unknown): d is UnitVector => {
  * @returns the mapping via the transformer t of the input i.
  */
 export const map =
-  (transf: Transform) =>
+  (transf: GeoMatrix) =>
   <T>(entity: GeoEntity<T>): T => {
     return entity.map(transf);
   };
@@ -64,7 +65,7 @@ export const relative =
     return absEntity.relative(frame);
   };
 
-export type Composable = Frame | Transform;
+export type Composable = Frame | Transform | Projection;
 
 /**
  * Compose multiple frames into a single frame
@@ -73,6 +74,8 @@ export type Composable = Frame | Transform;
  */
 export function compose(...t: Array<Frame>): Frame;
 export function compose(...t: Array<Transform>): Transform;
+export function compose(...t: Array<Projection>): Projection;
+export function compose(...t: Array<Composable>): Composable;
 export function compose(...t: Array<GeoMatrix>): GeoMatrix {
   const [h, ...rest] = t;
   return rest.reduce((accTrans: GeoMatrix, trans: GeoMatrix) => {

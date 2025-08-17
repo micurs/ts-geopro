@@ -34,7 +34,7 @@ describe('Transform basic operations', () => {
     const tv = vec4.create();
     vec4.transformMat4(tv, p1.vec4, m1);
 
-    const tp = t1.apply(p1);
+    const tp = p1.map(t1);
     expect(tp.vec4).toEqual(tv);
 
     expect(t1.isIdentity).toBe(false);

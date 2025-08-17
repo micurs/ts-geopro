@@ -1,10 +1,9 @@
 import { vec3, vec4 } from 'gl-matrix';
 import { Vector } from './vector.ts';
-import { Transform } from '../transform.ts';
 import { Frame } from './frame.ts';
 import { Point } from './point.ts';
 
-import type { Addable, HomogeneousCoords, VecEntries, GeoEntity } from '../types.ts';
+import type { Addable, HomogeneousCoords, VecEntries, GeoEntity, GeoMatrix } from '../types.ts';
 import { isUnitVector, isVector } from '../operations.ts';
 
 export class UnitVector implements HomogeneousCoords, Addable, GeoEntity<UnitVector> {
@@ -84,14 +83,14 @@ export class UnitVector implements HomogeneousCoords, Addable, GeoEntity<UnitVec
 
   //#region GeoEntity implementation
 
-  map(t: Transform): UnitVector {
+  map(t: GeoMatrix): UnitVector {
     const p = new UnitVector();
     vec4.transformMat4(p._coord, this._coord, t.directMatrix);
     vec4.normalize(p._coord, p._coord);
     return p;
   }
 
-  unMap(t: Transform): UnitVector {
+  unMap(t: GeoMatrix): UnitVector {
     const p = new UnitVector();
     vec4.transformMat4(p._coord, this._coord, t.inverseMatrix);
     vec4.normalize(p._coord, p._coord);
