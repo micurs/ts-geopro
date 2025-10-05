@@ -19,6 +19,12 @@
         "^build"
       ]
     },
+    "dev:p": {
+      "persistent": true,
+      "dependsOn": [
+        "^build"
+      ]
+    },
     "dev:c": {
       "persistent": true,
       "dependsOn": [

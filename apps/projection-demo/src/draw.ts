@@ -1,4 +1,4 @@
-import { UnitVector, Vector, Point, Transform, map } from '@micurs/ts-geopro';
+import { UnitVector, Vector, Point } from '@micurs/ts-geopro';
 import type { Context3D, Polygon, PolyShape } from './types.ts';
 
 export const polygonCenter = (poly: Polygon): Point => {
@@ -76,7 +76,7 @@ export const drawShape = (context3D: Context3D, shape: PolyShape, eye: Point) =>
       drawPolygon(
         context3D.ctx,
         'white',
-        `rgba(${150 * d},${150 * d},${150 * d}, 0.6)`,
+        `rgba(${180 * d},${180 * d},${180 * d}, 0.6)`,
         thick,
         pVtx[face[0]],
         pVtx[face[1]],

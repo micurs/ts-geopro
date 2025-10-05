@@ -57,8 +57,8 @@ function animate() {
 }
 
 // Improve sharpness on HiDPI: scale canvas to devicePixelRatio and draw in CSS pixel units
-const dpr = Math.max(1, Math.min(globalThis.devicePixelRatio || 1, 3));
 const resize = () => {
+  const dpr = Math.max(1, Math.min(globalThis.devicePixelRatio || 1, 3));
   const { clientWidth, clientHeight } = canvas;
   const [width, height] = [Math.floor(clientWidth * dpr), Math.floor(clientHeight * dpr)];
   canvas.width = width;

@@ -11,6 +11,7 @@
   },
   "scripts": {
     "dev:c": "turbo run dev:c",
+    "dev:p": "turbo run dev:p",
     "dev:q": "turbo run dev:q",
     "build": "turbo run build",
     "test": "turbo run test",
