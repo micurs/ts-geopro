@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { vec4, vec3 } from 'gl-matrix';
 
-import { Point, Vector } from '../src';
+import { Point, Vector } from '../src/index.ts';
 
 describe('Point basic operations', () => {
   test('Create a point', () => {
@@ -37,12 +37,12 @@ describe('Point basic operations', () => {
 
   test('Set a point with a vec4', () => {
     const v1 = vec4.fromValues(10, 20, 15, 10);
-    const v2 = vec4.fromValues(10, 20, 15, 0);
+    const v2 = vec4.fromValues(10, 20, 15, 1);
     const p1 = Point.fromVec4(v1);
     const p2 = Point.fromVec4(v2);
-    expect(p1.x).toBe(10);
-    expect(p1.y).toBe(20);
-    expect(p1.z).toBe(15);
+    expect(p1.x).toBe(1);
+    expect(p1.y).toBe(2);
+    expect(p1.z).toBe(1.5);
     expect(p2.x).toBe(10);
     expect(p2.y).toBe(20);
     expect(p2.z).toBe(15);

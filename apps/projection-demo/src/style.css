@@ -25,6 +25,6 @@ body {
   width: calc(100vw - 4px);
   height: calc(100vh - 4px);
   background-color: #1a1a1a;
-  border: solid 2px rgba(120, 40, 40, 0.8);
-  border-radius: 15px;
+  border: solid 2px rgba(220, 240, 240, 0.8);
+  border-radius: 0px 0px 19px 19px;
 }

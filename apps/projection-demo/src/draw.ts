@@ -1,4 +1,4 @@
-import { UnitVector, Vector, Point, Transform, map } from '@micurs/ts-geopro';
+import { UnitVector, Vector, Point } from '@micurs/ts-geopro';
 import type { Context3D, Polygon, PolyShape } from './types.ts';
 
 export const polygonCenter = (poly: Polygon): Point => {
@@ -60,9 +60,8 @@ export const drawPolygon = (
 };
 
 export const drawShape = (context3D: Context3D, shape: PolyShape, eye: Point) => {
-  const { vertices, faces } = shape;
+  const { vertices: tVtx, faces } = shape;
   context3D.ctx.strokeStyle = '#fff';
-  const tVtx = vertices;
   const pVtx = tVtx.map(context3D.projection);
 
   // Draw faces
@@ -72,11 +71,12 @@ export const drawShape = (context3D: Context3D, shape: PolyShape, eye: Point) =>
     // Compute backface culling
     const [n, c] = faceNormalOutward(tVtx[face[0]], tVtx[face[1]], tVtx[face[2]], tVtx[face[3]]);
     const toEye = UnitVector.fromPoints(eye, c);
-    if (n.dot(toEye) > 0) {
+    const d = n.dot(toEye);
+    if (d > 0) {
       drawPolygon(
         context3D.ctx,
         'white',
-        'rgba(100,100,100, 0.3)',
+        `rgba(${180 * d},${180 * d},${180 * d}, 0.6)`,
         thick,
         pVtx[face[0]],
         pVtx[face[1]],
@@ -99,12 +99,13 @@ function drawLine(context3D: Context3D, p1: Point, p2: Point, color: string) {
   const pp2 = projection(p2);
 
   // Scale line width inversely to the average scale factor to maintain consistent thickness
-  ctx.lineWidth = 2 / Math.min(width, height);
+  ctx.lineWidth = 1 / Math.min(width, height);
+  ctx.strokeStyle = color;
+
   ctx.beginPath();
   ctx.moveTo(pp1.x, pp1.y);
   ctx.lineTo(pp2.x, pp2.y);
   ctx.strokeStyle = color;
-  ctx.closePath();
   ctx.stroke();
 }
 
@@ -115,11 +116,11 @@ export const drawWorldFrame = (context3D: Context3D) => {
 };
 
 export const drawGrid = (context3D: Context3D) => {
-  const d = 10;
-  const { ctx } = context3D;
-  ctx.strokeStyle = '#444';
-  for (let i = -d; i <= d; i += 1) {
-    drawLine(context3D, Point.from(i, -d, 0), Point.from(i, d, 0), '#444');
-    drawLine(context3D, Point.from(-d, i, 0), Point.from(d, i, 0), '#444');
+  const d = 20;
+  const d2 = d / 2;
+  const step = 1.0;
+  for (let i = -d2; i <= d2; i += step) {
+    drawLine(context3D, Point.from(i, -d2, 0), Point.from(i, d2, 0), '#666');
+    drawLine(context3D, Point.from(-d2, i, 0), Point.from(d2, i, 0), '#666');
   }
 };
