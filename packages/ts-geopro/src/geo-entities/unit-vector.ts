@@ -176,7 +176,7 @@ export class UnitVector implements HomogeneousCoords, Addable, GeoEntity<UnitVec
     return p;
   }
 
-  dot = (v: UnitVector): number => {
+  dot = (v: Vector | UnitVector): number => {
     return vec3.dot(this.vec3, v.vec3);
   };
 
@@ -187,9 +187,14 @@ export class UnitVector implements HomogeneousCoords, Addable, GeoEntity<UnitVec
     return true;
   }
 
-  crossProduct(v2: UnitVector): UnitVector {
+  crossProduct(v2: Vector): Vector;
+  crossProduct(v2: UnitVector): UnitVector;
+  crossProduct(v2: UnitVector | Vector): UnitVector | Vector {
     const v = Vector.from(this);
-    return UnitVector.from(v.crossProduct(Vector.from(v2)));
+    if (isVector(v2)) {
+      return v.crossProduct(v2);
+    }
+    return UnitVector.from(v.crossProduct(v2));
   }
 
   /**

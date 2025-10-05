@@ -1,7 +1,7 @@
 import { vec3, vec4 } from 'gl-matrix';
 import { Frame } from './frame.ts';
 import { Point } from './point.ts';
-import { isUnitVector, isVec3, isVec4 } from '../operations.ts';
+import { isUnitVector, isVec3, isVec4, isVector } from '../operations.ts';
 
 import type { Addable, HomogeneousCoords, VecEntries, GeoEntity, GeoMatrix } from '../types.ts';
 import { UnitVector } from './unit-vector.ts';
@@ -232,11 +232,16 @@ export class Vector implements HomogeneousCoords, Addable, GeoEntity<Vector> {
    * @param v2 - the other vector
    * @returns
    */
-  crossProduct = (v2: Vector): Vector => {
+  crossProduct(v2: UnitVector): UnitVector;
+  crossProduct(v2: Vector): Vector;
+  crossProduct(v2: Vector | UnitVector): Vector | UnitVector {
     const res = vec3.create();
     vec3.cross(res, this.vec3, v2.vec3);
-    return Vector.fromVec3(res);
-  };
+    if (isVector(v2)) {
+      return Vector.fromVec3(res);
+    }
+    return UnitVector.fromVec3(res);
+  }
 
   /**
    * Add two vectors
