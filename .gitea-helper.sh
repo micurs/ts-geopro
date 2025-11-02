@@ -77,16 +77,35 @@ case "$1" in
       python3 -c "import sys,json; r=json.load(sys.stdin); print(f'✓ Issue #{r[\"number\"]} reopened: {r[\"title\"]}')"
     ;;
 
+  pr)
+    TITLE="$2"
+    BODY="$3"
+    HEAD="$4"
+    BASE="${5:-micurs/projection-2}"
+    if [ -z "$TITLE" ] || [ -z "$BODY" ] || [ -z "$HEAD" ]; then
+      echo "Usage: $0 pr <title> <body> <head_branch> [base_branch]"
+      echo "Example: $0 pr \"My PR\" \"Description\" \"micurs/my-branch\" \"main\""
+      exit 1
+    fi
+    curl -s -X POST \
+      -H "Authorization: token $GITEA_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg title "$TITLE" --arg body "$BODY" --arg head "$HEAD" --arg base "$BASE" '{title: $title, body: $body, head: $head, base: $base}')" \
+      "$GITEA_URL/api/v1/repos/$REPO/pulls" | \
+      python3 -c "import sys,json; r=json.load(sys.stdin); print(f'✓ PR #{r[\"number\"]} created: {r[\"title\"]}\n  URL: {r[\"html_url\"]}')"
+    ;;
+
   *)
     echo "Gitea API Helper"
-    echo "Usage: $0 {list|create|comment|close|reopen} [args...]"
+    echo "Usage: $0 {list|create|comment|close|reopen|pr} [args...]"
     echo ""
     echo "Commands:"
-    echo "  list [state]              List issues (default: open)"
-    echo "  create <title> <body>     Create new issue"
-    echo "  comment <num> <text>      Add comment to issue"
-    echo "  close <num>               Close issue"
-    echo "  reopen <num>              Reopen issue"
+    echo "  list [state]                      List issues (default: open)"
+    echo "  create <title> <body>             Create new issue"
+    echo "  comment <num> <text>              Add comment to issue"
+    echo "  close <num>                       Close issue"
+    echo "  reopen <num>                      Reopen issue"
+    echo "  pr <title> <body> <head> [base]   Create pull request"
     exit 1
     ;;
 esac

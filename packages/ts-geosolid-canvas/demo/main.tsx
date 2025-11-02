@@ -12,7 +12,7 @@ const App = () => {
       {/* Grid background */}
       <PerfectGrid
         showOrigin={true}
-        alpha={0.8}
+        alpha={0.5}
         steps={10}
       />
 
