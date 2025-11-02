@@ -11,7 +11,6 @@
   "dependencies": {
     "@micurs/ts-geopro": "workspace:*",
     "@micurs/ts-geosolid-canvas": "workspace:*",
-    "roughjs": "^4.6.6",
     "solid-js": "^1.9.6"
   },
   "devDependencies": {
