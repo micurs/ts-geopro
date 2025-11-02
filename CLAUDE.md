@@ -22,7 +22,8 @@ across the monorepo.
 
 ### Tools
 
-- Use the `tea` CLI tool to create and update issues.
+- Use the `tea` CLI tool to create and update issues. And to create pull
+  requests.
 - Use `pnpm` for package management.
 - use `git` for version control.
 
@@ -31,8 +32,10 @@ Before making changes always:
 1. Create a new issue describing the feature or bug fix.
 2. Create a new branch from `main` for your work.
 3. Commit changes with clear messages referencing the issue.
-4. Add tests for new features or bug fixes.
-5. Follow the coding style and conventions used in the existing codebase.
+4. Update the issue with status and comments as needed.
+5. Add tests for new features or bug fixes.
+6. Create a pull request linking to the issue for review and wait for approval.
+7. Follow the coding style and conventions used in the existing codebase.
 
 ## Architecture
 

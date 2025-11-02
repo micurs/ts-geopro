@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { Canvas } from './canvas.tsx';
+import { Canvas } from '@micurs/ts-geosolid-canvas';
 import { Line } from './line.tsx';
 import { Rectangle } from './rectangle.tsx';
 import { Ellipse } from './ellipse.tsx';
