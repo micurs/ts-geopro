@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "tsc && rimraf dist && vite build",
+    "demo": "vite --config vite.demo.config.ts",
     "preview": "vite preview",
     "lint": "deno lint -c ./deno.lint.json --fix"
   },
