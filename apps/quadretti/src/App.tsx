@@ -1,9 +1,5 @@
 import type { Component } from 'solid-js';
-import { Canvas } from '@micurs/ts-geosolid-canvas';
-import { Line } from './line.tsx';
-import { Rectangle } from './rectangle.tsx';
-import { Ellipse } from './ellipse.tsx';
-import { PerfectGrid } from './perfect-grid.tsx';
+import { Canvas, Line, Rectangle, Ellipse, PerfectGrid } from '@micurs/ts-geosolid-canvas';
 import { Point } from '@micurs/ts-geopro';
 
 const App: Component = () => {
