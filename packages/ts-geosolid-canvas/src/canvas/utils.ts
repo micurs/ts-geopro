@@ -35,15 +35,20 @@ export const resizeObserver = (canvas: HTMLCanvasElement, draw: () => void) => (
   if (!contentBoxSize) {
     return;
   }
+  let changed = false;
   if (Math.abs(canvas.width - contentBoxSize.inlineSize) > 1) {
-    canvas.width = Math.floor(contentBoxSize.inlineSize); //Math.floor(contentBoxSize.inlineSize - 2);
+    canvas.width = Math.floor(contentBoxSize.inlineSize);
     canvas.style.width = `${canvas.width}px`;
+    changed = true;
   }
   if (Math.abs(canvas.height - contentBoxSize.blockSize) > 1) {
     canvas.height = Math.floor(contentBoxSize.blockSize);
     canvas.style.height = `${canvas.height}px`;
+    changed = true;
   }
-  draw();
+  if (changed) {
+    draw();
+  }
 };
 
 export const clear = (ctx: CanvasRenderingContext2D, [width, height]: [number, number]) => {
