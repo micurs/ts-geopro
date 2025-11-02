@@ -60,6 +60,9 @@ importers:
       '@micurs/ts-geopro':
         specifier: workspace:*
         version: link:../../packages/ts-geopro
+      '@micurs/ts-geosolid-canvas':
+        specifier: workspace:*
+        version: link:../../packages/ts-geosolid-canvas
       roughjs:
         specifier: ^4.6.6
         version: 4.6.6
@@ -113,9 +116,6 @@ importers:
       '@micurs/ts-geopro':
         specifier: workspace:*
         version: link:../ts-geopro
-      roughjs:
-        specifier: ^4.6.6
-        version: 4.6.6
       solid-js:
         specifier: ^1.9.6
         version: 1.9.7
