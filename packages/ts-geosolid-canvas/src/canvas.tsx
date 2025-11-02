@@ -60,7 +60,7 @@ const initCanvas = (canvasId: string, options: Partial<Options> = {}) => {
   // Observe the resize of the canvas and set a resizeObserver to reset
   // canvas dimension and redraw
   new ResizeObserver(resizeObserver(canvas, draw)) // Resizing callback on canvas and capable of draw()
-    .observe(canvasContainerEl!, { box: 'device-pixel-content-box' }); // Observe the parent element of the canvas
+    .observe(canvasContainerEl!, { box: 'content-box' }); // Observe the parent element of the canvas
 
   // Track the wheel event with a zoom Observer
   canvas.addEventListener(
@@ -107,8 +107,9 @@ export const Canvas: Component<CanvasProps> = (props: CanvasProps) => {
       <div
         class={props.class ?? 'overflow-hidden'}
         id={`${props.id}-container`}
+        style="width: 100%; height: 100%;"
       >
-        <canvas id={props.id} style="width: 100%; height: 100%;"></canvas>
+        <canvas id={props.id} style="display: block;"></canvas>
         {props.children}
       </div>
     </canvasContext.Provider>

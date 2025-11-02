@@ -35,18 +35,13 @@ export const resizeObserver = (canvas: HTMLCanvasElement, draw: () => void) => (
   if (!contentBoxSize) {
     return;
   }
-  let changed = false;
-  if (Math.abs(canvas.width - contentBoxSize.inlineSize) > 1) {
-    canvas.width = Math.floor(contentBoxSize.inlineSize);
-    canvas.style.width = `${canvas.width}px`;
-    changed = true;
-  }
-  if (Math.abs(canvas.height - contentBoxSize.blockSize) > 1) {
-    canvas.height = Math.floor(contentBoxSize.blockSize);
-    canvas.style.height = `${canvas.height}px`;
-    changed = true;
-  }
-  if (changed) {
+  const newWidth = Math.floor(contentBoxSize.inlineSize);
+  const newHeight = Math.floor(contentBoxSize.blockSize);
+
+  // Only update if dimensions actually changed
+  if (canvas.width !== newWidth || canvas.height !== newHeight) {
+    canvas.width = newWidth;
+    canvas.height = newHeight;
     draw();
   }
 };
