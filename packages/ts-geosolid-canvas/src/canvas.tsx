@@ -73,7 +73,7 @@ const initCanvas = (canvasId: string, options: Partial<Options> = {}) => {
 
   // Track mouse-down mouse-move mouse-up with a panObserver
   mousePanObserver(canvas, pan, (prevPan, dx, dy) => {
-    pan = [prevPan[0] + dx * scaleFactor, prevPan[1] - dy * scaleFactor]; // Negate dy because Y-axis is inverted
+    pan = [prevPan[0] + dx * scaleFactor, prevPan[1] + dy * scaleFactor];
     draw();
     return pan;
   });
