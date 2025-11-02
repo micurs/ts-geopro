@@ -1,0 +1,21 @@
+{
+  "extends": "@total-typescript/tsconfig/tsc/dom/library",
+  "compilerOptions": {
+    "outDir": "dist",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "exactOptionalPropertyTypes": true,
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js"
+  },
+  "include": ["./src"],
+  "exclude": ["*.test.ts"]
+}

@@ -116,6 +116,29 @@ pnpm run watch:test
 pnpm run build
 ```
 
+### Gitea Issue Management
+
+A helper script is provided for managing Gitea issues via API:
+
+```bash
+# List open issues
+./.gitea-helper.sh list
+
+# List closed issues
+./.gitea-helper.sh list closed
+
+# Add a comment to an issue
+./.gitea-helper.sh comment 16 "Work in progress"
+
+# Close an issue
+./.gitea-helper.sh close 16
+
+# Reopen an issue
+./.gitea-helper.sh reopen 16
+```
+
+The script uses the Gitea REST API and requires authentication configured in `~/Library/Application Support/tea/config.yml`.
+
 ## Technical Details
 
 - Built with TypeScript for type safety

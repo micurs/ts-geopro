@@ -10,6 +10,14 @@ transformations. It provides comprehensive tools for handling 3D geometric
 operations with coordinate transformations, vector/matrix operations, and point
 manipulations using gl-matrix for performance.
 
+The entire project is structured as a monorepo with multiple applications and
+packages, all in TypeScript. The project aims to use a functional programming
+style with immutable data structures. When editing or extending the code, please
+adhere to these principles.
+
+The repo package manager is pnpm, and Turbo is used for build orchestration
+across the monorepo.
+
 ## Architecture
 
 This is a monorepo using pnpm workspaces and Turbo for build orchestration:
@@ -95,12 +103,14 @@ The library is published to JSR (JavaScript Registry):
 The Quadretti app is a modern interactive canvas application built with:
 
 ### Tech Stack
+
 - **Solid.JS**: Reactive UI framework with fine-grained reactivity
 - **TailwindCSS v4**: Utility-first CSS with CSS custom properties
 - **RoughJS**: Hand-drawn style 2D graphics library
 - **Vite**: Fast build tool with HMR support
 
 ### Key Components
+
 - **Canvas**: Main rendering component with zoom/pan functionality
   - Viewport management with 2D transformations
   - ResizeObserver for responsive canvas sizing
@@ -112,6 +122,7 @@ The Quadretti app is a modern interactive canvas application built with:
 - **Canvas Context**: Solid.JS context for viewport state sharing
 
 ### Architecture Patterns
+
 - **Component-based rendering**: Geometric entities as Solid.JS components
 - **Reactive drawing**: Components automatically redraw when props change
 - **Viewport transformation**: 2D canvas transforms handled by ts-geopro
