@@ -16,19 +16,16 @@ interface RectangleProps {
 }
 
 export const drawRectangle = (vp: Viewport, rect: RectangleProps) => {
-  const { roughCanvas, scaleFactor } = vp;
-  roughCanvas.rectangle(rect.topLeft.x, rect.topLeft.y, rect.width, rect.height, {
-    stroke: rect.color || 'black',
-    strokeWidth: getScaledWidth(rect.strokeWidth ?? 1, scaleFactor),
-    fill: rect.fill,
-    roughness: 0.2,
-    bowing: 10,
-    seed: 10,
-    fillStyle: 'cross-hatch',
-    fillWeight: 0.5 * getScaledWidth(rect.strokeWidth ?? 1, scaleFactor),
-    preserveVertices: true,
-    hachureGap: 4,
-  });
+  const { ctx, scaleFactor } = vp;
+  ctx.strokeStyle = rect.color || 'black';
+  ctx.lineWidth = getScaledWidth(rect.strokeWidth ?? 1, scaleFactor);
+
+  if (rect.fill) {
+    ctx.fillStyle = rect.fill;
+    ctx.fillRect(rect.topLeft.x, rect.topLeft.y, rect.width, rect.height);
+  }
+
+  ctx.strokeRect(rect.topLeft.x, rect.topLeft.y, rect.width, rect.height);
 };
 
 export const Rectangle: Component<RectangleProps> = (props: RectangleProps) => {

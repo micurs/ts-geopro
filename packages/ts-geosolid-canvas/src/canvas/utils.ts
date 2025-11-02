@@ -58,7 +58,7 @@ export const clear = (ctx: CanvasRenderingContext2D, [width, height]: [number, n
  * @param zoom - desired size of the min dimension
  */
 export const getViewport = (options: ViewportSettings): Viewport => {
-  const { ctx, roughCanvas, zoom, pan, dim } = options;
+  const { ctx, zoom, pan, dim } = options;
   let scaleFactor = 1.0;
 
   scaleFactor = dim[0] < dim[1] ? zoom / dim[0] : zoom / dim[1];
@@ -72,7 +72,6 @@ export const getViewport = (options: ViewportSettings): Viewport => {
 
   return {
     ctx,
-    roughCanvas,
     pan,
     trans: [centerX, centerY],
     scaleFactor,

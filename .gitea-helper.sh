@@ -1,10 +1,11 @@
 #!/bin/bash
 # Gitea API Helper Script
 # Usage examples:
-#   ./gitea-helper.sh list                    # List open issues
-#   ./gitea-helper.sh comment 16 "Message"    # Add comment to issue #16
-#   ./gitea-helper.sh close 16                # Close issue #16
-#   ./gitea-helper.sh reopen 16               # Reopen issue #16
+#   ./gitea-helper.sh list                         # List open issues
+#   ./gitea-helper.sh create "Title" "Body"        # Create new issue
+#   ./gitea-helper.sh comment 16 "Message"         # Add comment to issue #16
+#   ./gitea-helper.sh close 16                     # Close issue #16
+#   ./gitea-helper.sh reopen 16                    # Reopen issue #16
 
 GITEA_URL="http://gitea.micurs.com:3000"
 GITEA_TOKEN="ad68b8e297dcf1855ed28ad7c5e43ac1d496f35d"
@@ -16,6 +17,21 @@ case "$1" in
     curl -s -H "Authorization: token $GITEA_TOKEN" \
       "$GITEA_URL/api/v1/repos/$REPO/issues?state=$STATE&limit=20" | \
       python3 -c "import sys,json; issues=json.load(sys.stdin); print('\n'.join([f'#{i[\"number\"]}: [{i[\"state\"]}] {i[\"title\"]}' for i in issues]))"
+    ;;
+
+  create)
+    TITLE="$2"
+    BODY="$3"
+    if [ -z "$TITLE" ] || [ -z "$BODY" ]; then
+      echo "Usage: $0 create <title> <body>"
+      exit 1
+    fi
+    curl -s -X POST \
+      -H "Authorization: token $GITEA_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg title "$TITLE" --arg body "$BODY" '{title: $title, body: $body}')" \
+      "$GITEA_URL/api/v1/repos/$REPO/issues" | \
+      python3 -c "import sys,json; r=json.load(sys.stdin); print(f'✓ Issue #{r[\"number\"]} created: {r[\"title\"]}\n  URL: {r[\"html_url\"]}')"
     ;;
 
   comment)
@@ -63,10 +79,11 @@ case "$1" in
 
   *)
     echo "Gitea API Helper"
-    echo "Usage: $0 {list|comment|close|reopen} [args...]"
+    echo "Usage: $0 {list|create|comment|close|reopen} [args...]"
     echo ""
     echo "Commands:"
     echo "  list [state]              List issues (default: open)"
+    echo "  create <title> <body>     Create new issue"
     echo "  comment <num> <text>      Add comment to issue"
     echo "  close <num>               Close issue"
     echo "  reopen <num>              Reopen issue"

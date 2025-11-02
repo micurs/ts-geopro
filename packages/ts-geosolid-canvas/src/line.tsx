@@ -15,13 +15,13 @@ interface LineProps {
 }
 
 export const drawLine = (vp: Viewport, line: LineProps) => {
-  const { roughCanvas, scaleFactor } = vp;
-  roughCanvas.line(line.from.x, line.from.y, line.to.x, line.to.y, {
-    stroke: line.color || 'black',
-    strokeWidth: getScaledWidth(line.width ?? 1, scaleFactor),
-    roughness: 0.05,
-    seed: 10,
-  });
+  const { ctx, scaleFactor } = vp;
+  ctx.strokeStyle = line.color || 'black';
+  ctx.lineWidth = getScaledWidth(line.width ?? 1, scaleFactor);
+  ctx.beginPath();
+  ctx.moveTo(line.from.x, line.from.y);
+  ctx.lineTo(line.to.x, line.to.y);
+  ctx.stroke();
 };
 
 export const Line: Component<LineProps> = (props: LineProps) => {

@@ -16,7 +16,6 @@ export type {
   Coord2D,
   Size2D,
   Options,
-  RoughCanvas,
   ViewportSettings,
   RenderFn,
   GPCanvas,

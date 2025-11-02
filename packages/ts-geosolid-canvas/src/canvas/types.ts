@@ -1,7 +1,4 @@
 import type { Point, Transform, Frame, Ray } from '@micurs/ts-geopro';
-import rough from 'roughjs/bundled/rough.esm.js';
-
-export type RoughCanvas = ReturnType<typeof rough.canvas>;
 
 export type PointMapper = (p: Point) => Point;
 
@@ -11,7 +8,6 @@ export type Size2D = [number, number];
 
 export interface Viewport {
   ctx: CanvasRenderingContext2D;
-  roughCanvas: RoughCanvas;
   scaleFactor: number;
   trans: [number, number];
   transform: Transform;
@@ -27,7 +23,6 @@ export interface GPCanvas {
 export type ViewportSettings = {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
-  roughCanvas: RoughCanvas;
   zoom: number;
   pan: Coord2D;
   dim: Size2D;

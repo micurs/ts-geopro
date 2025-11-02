@@ -1,4 +1,3 @@
-import rough from 'roughjs/bundled/rough.esm.js';
 import { createSignal, onMount } from 'solid-js';
 import { clear, getCanvas, getContext, getViewport, mousePanObserver, resizeObserver, zoomObserver } from './canvas/utils.ts';
 
@@ -34,7 +33,6 @@ const setupTransformation = (ctx: CanvasRenderingContext2D, viewport: Viewport) 
  */
 const initCanvas = (canvasId: string, options: Partial<Options> = {}) => {
   const canvas: HTMLCanvasElement = getCanvas(canvasId);
-  const roughCanvas = rough.canvas(canvas);
   const ctx = getContext(canvas);
   const canvasContainerEl = canvas?.parentElement;
 
@@ -50,7 +48,7 @@ const initCanvas = (canvasId: string, options: Partial<Options> = {}) => {
    */
   const draw = () => {
     const dim: Size2D = [canvas.clientWidth, canvas.clientHeight];
-    const viewport = getViewport({ canvas, ctx, roughCanvas, zoom, pan, dim });
+    const viewport = getViewport({ canvas, ctx, zoom, pan, dim });
     setupTransformation(ctx, viewport);
     scaleFactor = viewport.scaleFactor;
     console.log('scaleFactor', ((1 + (1 - scaleFactor)) * 100).toFixed(0), '%', scaleFactor);

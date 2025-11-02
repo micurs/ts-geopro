@@ -16,18 +16,26 @@ interface EllipseProps {
 }
 
 export const drawEllipse = (vp: Viewport, ellipse: EllipseProps) => {
-  const { roughCanvas, scaleFactor } = vp;
-  roughCanvas.ellipse(ellipse.center.x, ellipse.center.y, ellipse.width, ellipse.height, {
-    stroke: ellipse.color || 'black',
-    strokeWidth: getScaledWidth(ellipse.strokeWidth ?? 1, scaleFactor),
-    fill: ellipse.fill,
-    roughness: 0.1,
-    seed: 10,
-    fillStyle: 'cross-hatch',
-    fillWeight: 0.1 * getScaledWidth(ellipse.strokeWidth ?? 1, scaleFactor),
-    hachureGap: 2,
-    preserveVertices: true,
-  });
+  const { ctx, scaleFactor } = vp;
+  ctx.strokeStyle = ellipse.color || 'black';
+  ctx.lineWidth = getScaledWidth(ellipse.strokeWidth ?? 1, scaleFactor);
+
+  ctx.beginPath();
+  ctx.ellipse(
+    ellipse.center.x,
+    ellipse.center.y,
+    ellipse.width / 2,
+    ellipse.height / 2,
+    0,
+    0,
+    2 * Math.PI
+  );
+
+  if (ellipse.fill) {
+    ctx.fillStyle = ellipse.fill;
+    ctx.fill();
+  }
+  ctx.stroke();
 };
 
 export const Ellipse: Component<EllipseProps> = (props: EllipseProps) => {
