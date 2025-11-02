@@ -4,33 +4,9 @@
 export { Canvas } from './canvas.tsx';
 
 // Shape components
-export { Line, drawLine } from './line.tsx';
-export { PerfectGrid, renderPerfectGrid } from './perfect-grid.tsx';
-export { Ellipse, drawEllipse } from './ellipse.tsx';
-export { Rectangle, drawRectangle } from './rectangle.tsx';
-
-// Canvas context and types
-export { canvasContext } from './canvas/canvas-context.ts';
-export type {
-  Viewport,
-  Coord2D,
-  Size2D,
-  Options,
-  ViewportSettings,
-  RenderFn,
-  GPCanvas,
-} from './canvas/types.ts';
-
-// Canvas utilities
-export {
-  getCanvas,
-  getContext,
-  getViewport,
-  clear,
-  resizeObserver,
-  zoomObserver,
-  mousePanObserver,
-  getScaledWidth,
-} from './canvas/utils.ts';
+export { Line } from './line.tsx';
+export { PerfectGrid } from './perfect-grid.tsx';
+export { Ellipse } from './ellipse.tsx';
+export { Rectangle } from './rectangle.tsx';
 
 export const version = '0.0.1';
