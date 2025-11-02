@@ -8,8 +8,13 @@
 #   ./gitea-helper.sh reopen 16                    # Reopen issue #16
 
 GITEA_URL="http://gitea.micurs.com:3000"
-GITEA_TOKEN="ad68b8e297dcf1855ed28ad7c5e43ac1d496f35d"
+GITEA_TOKEN="${GITEA_TOKEN:-$(grep 'token:' ~/Library/Application\ Support/tea/config.yml 2>/dev/null | head -1 | awk '{print $2}')}"
 REPO="micurs/ts-geopro"
+
+if [ -z "$GITEA_TOKEN" ]; then
+  echo "Error: GITEA_TOKEN not found. Set GITEA_TOKEN env var or ensure tea CLI is configured."
+  exit 1
+fi
 
 case "$1" in
   list)

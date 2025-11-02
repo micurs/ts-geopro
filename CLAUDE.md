@@ -18,6 +18,16 @@ adhere to these principles.
 The repo package manager is pnpm, and Turbo is used for build orchestration
 across the monorepo.
 
+## Contribution Guidelines
+
+Before making changes always:
+
+1. Create a new issue describing the feature or bug fix. Use `.gitea-helper.sh`.
+2. Create a new branch from `main` for your work.
+3. Commit changes with clear messages referencing the issue.
+4. Add tests for new features or bug fixes.
+5. Follow the coding style and conventions used in the existing codebase.
+
 ## Architecture
 
 This is a monorepo using pnpm workspaces and Turbo for build orchestration:
@@ -41,48 +51,13 @@ This is a monorepo using pnpm workspaces and Turbo for build orchestration:
 The library uses gl-matrix for optimized matrix operations and follows
 functional programming principles with immutable transformations.
 
-## Development Commands
-
-### Root Level (using Turbo)
-
-- `pnpm dev:c` - Start development mode for `canvas-demo` app
-- `pnpm dev:q` - Start development mode for `quadretti` app
-- `pnpm build` - Build all packages
-- `pnpm test` - Run tests for all packages with linting
-- `pnpm lint` - Lint all packages
-
-### Core Library (packages/ts-geopro/)
-
-- `pnpm test` - Run Vitest tests with coverage (89% lines, 85% functions, 90%
-  branches)
-- `pnpm watch:test` - Run tests in watch mode
-- `pnpm build` - TypeScript compilation + Vite build
-- `pnpm dev:c` or `pnpm dev:q` - Build in watch mode
-- `pnpm lint` - Deno linting with auto-fix
-
-### Canvas Demo (apps/canvas-demo/)
-
-- `pnpm dev:c` - TypeScript compilation + Vite dev server
-- `pnpm build` - Production build
-- `pnpm preview` - Preview production build
-
-### Quadretti App (apps/quadretti/)
-
-- `pnpm dev:q` - Vite dev server (port 3000)
-- `pnpm build` - TypeScript compilation + Vite production build
-- `pnpm preview` - Preview production build
-
-### CLI Demos
-
-- `pnpm cli-demos` - Run point-vector demo via Deno
-
 ## Testing
 
 The project uses Vitest for testing with strict coverage thresholds. Tests are
 located in `packages/ts-geopro/tests/` and follow the pattern
 `{feature}.test.ts`. Coverage reports are generated in `tests-coverage/`.
 
-## Publishing
+## Publishing ts-geopro
 
 The library is published to JSR (JavaScript Registry):
 
@@ -97,29 +72,6 @@ The library is published to JSR (JavaScript Registry):
 - The library supports both ES Modules and CommonJS
 - Canvas demo includes scene graph functionality with viewport management
 - Version updates are managed via `scripts/update-versions.ts` Deno script
-
-## Quadretti App Architecture
-
-The Quadretti app is a modern interactive canvas application built with:
-
-### Tech Stack
-
-- **Solid.JS**: Reactive UI framework with fine-grained reactivity
-- **TailwindCSS v4**: Utility-first CSS with CSS custom properties
-- **RoughJS**: Hand-drawn style 2D graphics library
-- **Vite**: Fast build tool with HMR support
-
-### Key Components
-
-- **Canvas**: Main rendering component with zoom/pan functionality
-  - Viewport management with 2D transformations
-  - ResizeObserver for responsive canvas sizing
-  - Mouse wheel zoom and drag-to-pan interactions
-  - Integration with ts-geopro Transform system
-- **Line**: Geometric line component using RoughJS for sketchy rendering
-  - Reactive props with createEffect for auto-redraw
-  - Uses ts-geopro Point entities for coordinates
-- **Canvas Context**: Solid.JS context for viewport state sharing
 
 ### Architecture Patterns
 
