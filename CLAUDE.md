@@ -5,7 +5,7 @@ code in this repository.
 
 ## Project Overview
 
-ts-geopro is a TypeScript library for 3D geometric computations and
+ts-geopro is a TypeScript library for 2D/3D geometric computations and
 transformations. It provides comprehensive tools for handling 3D geometric
 operations with coordinate transformations, vector/matrix operations, and point
 manipulations using gl-matrix for performance.
@@ -20,9 +20,15 @@ across the monorepo.
 
 ## Contribution Guidelines
 
+### Tools
+
+- Use the `tea` CLI tool to create and update issues.
+- Use `pnpm` for package management.
+- use `git` for version control.
+
 Before making changes always:
 
-1. Create a new issue describing the feature or bug fix. Use `.gitea-helper.sh`.
+1. Create a new issue describing the feature or bug fix.
 2. Create a new branch from `main` for your work.
 3. Commit changes with clear messages referencing the issue.
 4. Add tests for new features or bug fixes.
