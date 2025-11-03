@@ -34,7 +34,8 @@ Before making changes always:
 3. Commit changes with clear messages referencing the issue.
 4. Update the issue with status and comments as needed.
 5. Add tests for new features or bug fixes.
-6. Create a pull request linking to the issue for review and wait for approval.
+6. When create a pull request link the issue or issues being resolved and wait
+   for confirmation the PR is approved and merged.
 7. Follow the coding style and conventions used in the existing codebase.
 
 ## Architecture

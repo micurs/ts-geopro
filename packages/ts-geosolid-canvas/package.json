@@ -11,6 +11,8 @@
     "build": "tsc && rimraf dist && vite build",
     "demo": "vite --config vite.demo.config.ts",
     "preview": "vite preview",
+    "test": "vitest run",
+    "watch:test": "vitest watch",
     "lint": "deno lint -c ./deno.lint.json --fix"
   },
   "dependencies": {
@@ -22,6 +24,7 @@
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vite-plugin-dts": "^4.3.0",
-    "vite-plugin-solid": "^2.11.6"
+    "vite-plugin-solid": "^2.11.6",
+    "vitest": "^3.0.9"
   }
 }

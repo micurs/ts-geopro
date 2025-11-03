@@ -16,12 +16,39 @@ const App = () => {
         steps={10}
       />
 
-      {/* Line from (-100, 0) to (100, 0) */}
+      {/* Line with filled end arrow */}
       <Line
         from={Point.from(-100, 150, 0)}
         to={Point.from(100, 50, 0)}
         color='#00ff00'
         width={1}
+        endArrow='arrow'
+        arrowSize={8}
+        arrowFilled={true}
+      />
+
+      {/* Line with stroked arrows at both ends */}
+      <Line
+        from={Point.from(-150, -50, 0)}
+        to={Point.from(-150, 100, 0)}
+        color='#ff6600'
+        width={2}
+        startArrow='arrow'
+        endArrow='arrow'
+        arrowSize={6}
+        arrowFilled={false}
+      />
+
+      {/* Line with custom arrow color */}
+      <Line
+        from={Point.from(150, 100, 0)}
+        to={Point.from(150, -50, 0)}
+        color='#ffffff'
+        width={2}
+        endArrow='arrow'
+        arrowSize={10}
+        arrowFilled={true}
+        arrowColor='#ff0000'
       />
 
       {/* Ellipse at origin */}
@@ -44,7 +71,7 @@ const App = () => {
         fill='rgba(255, 0, 255, 0.1)'
       />
 
-      {/* Line diagonal */}
+      {/* Line diagonal - no arrows (default) */}
       <Line
         from={Point.from(-50, -50, 0)}
         to={Point.from(50, 50, 0)}
