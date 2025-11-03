@@ -14,12 +14,16 @@ const App: Component = () => {
         from={Point.from(-50, 50, 0)}
         to={Point.from(50, -50, 0)}
         color='red'
+        end='arrow'
+        endSize={8}
         width={1}
       />
       <Line
         from={Point.from(50, 50, 0)}
         to={Point.from(-50, -50, 0)}
         color='yellow'
+        end='arrow'
+        endSize={8}
         width={1}
       />
       <Rectangle

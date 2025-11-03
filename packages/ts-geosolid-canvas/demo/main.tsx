@@ -22,33 +22,50 @@ const App = () => {
         to={Point.from(100, 50, 0)}
         color='#00ff00'
         width={1}
-        endArrow='arrow'
-        arrowSize={8}
-        arrowFilled={true}
+        end='arrow'
+        endSize={8}
+        endStyle='filled'
       />
 
-      {/* Line with stroked arrows at both ends */}
+      {/* Line with empty arrows at both ends */}
       <Line
         from={Point.from(-150, -50, 0)}
         to={Point.from(-150, 100, 0)}
         color='#ff6600'
         width={2}
-        startArrow='arrow'
-        endArrow='arrow'
-        arrowSize={6}
-        arrowFilled={false}
+        start='arrow'
+        end='arrow'
+        startSize={6}
+        endSize={6}
+        startStyle='empty'
+        endStyle='empty'
       />
 
-      {/* Line with custom arrow color */}
+      {/* Line with custom arrow colors and different sizes */}
       <Line
         from={Point.from(150, 100, 0)}
         to={Point.from(150, -50, 0)}
         color='#ffffff'
         width={2}
-        endArrow='arrow'
-        arrowSize={10}
-        arrowFilled={true}
-        arrowColor='#ff0000'
+        end='arrow'
+        endSize={10}
+        endStyle='filled'
+        endColor='#ff0000'
+      />
+
+      {/* Line with circle at start and arrow at end */}
+      <Line
+        from={Point.from(-50, 150, 0)}
+        to={Point.from(50, 150, 0)}
+        color='#00ffff'
+        width={2}
+        start='circle'
+        end='arrow'
+        startSize={6}
+        endSize={8}
+        startStyle='filled'
+        endStyle='empty'
+        startColor='#ff00ff'
       />
 
       {/* Ellipse at origin */}

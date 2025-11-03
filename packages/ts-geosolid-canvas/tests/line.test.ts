@@ -44,16 +44,16 @@ describe('Line component', () => {
     expect(vp.ctx.stroke).toHaveBeenCalled();
   });
 
-  test('drawLine with endArrow draws arrowhead', () => {
+  test('drawLine with end arrow draws arrowhead', () => {
     const vp = createMockViewport();
     const lineProps = {
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
       color: '#00ff00',
       width: 1,
-      endArrow: 'arrow' as const,
-      arrowSize: 8,
-      arrowFilled: false,
+      end: 'arrow' as const,
+      endSize: 8,
+      endStyle: 'empty' as const,
     };
 
     drawLine(vp, lineProps);
@@ -66,14 +66,14 @@ describe('Line component', () => {
     expect(vp.ctx.stroke).toHaveBeenCalled();
   });
 
-  test('drawLine with startArrow draws arrowhead at start', () => {
+  test('drawLine with start arrow draws arrowhead at start', () => {
     const vp = createMockViewport();
     const lineProps = {
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
-      startArrow: 'arrow' as const,
-      arrowSize: 5,
-      arrowFilled: false,
+      start: 'arrow' as const,
+      startSize: 5,
+      startStyle: 'empty' as const,
     };
 
     drawLine(vp, lineProps);
@@ -86,9 +86,9 @@ describe('Line component', () => {
     const lineProps = {
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
-      endArrow: 'arrow' as const,
-      arrowFilled: true,
-      arrowSize: 8,
+      end: 'arrow' as const,
+      endStyle: 'filled' as const,
+      endSize: 8,
     };
 
     drawLine(vp, lineProps);
@@ -96,7 +96,7 @@ describe('Line component', () => {
     expect(vp.ctx.fill).toHaveBeenCalled();
   });
 
-  test('drawLine with custom arrowColor uses specified color', () => {
+  test('drawLine with custom endColor uses specified color', () => {
     const vp = createMockViewport();
     const strokeStyleValues: string[] = [];
 
@@ -114,9 +114,9 @@ describe('Line component', () => {
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
       color: '#ff0000',
-      endArrow: 'arrow' as const,
-      arrowColor: '#0000ff',
-      arrowFilled: false,
+      end: 'arrow' as const,
+      endColor: '#0000ff',
+      endStyle: 'empty' as const,
     };
 
     drawLine(vp, lineProps);
@@ -131,9 +131,10 @@ describe('Line component', () => {
     const lineProps = {
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
-      startArrow: 'arrow' as const,
-      endArrow: 'arrow' as const,
-      arrowSize: 6,
+      start: 'arrow' as const,
+      end: 'arrow' as const,
+      startSize: 6,
+      endSize: 6,
     };
 
     drawLine(vp, lineProps);
@@ -153,5 +154,47 @@ describe('Line component', () => {
 
     // Default color should be black
     expect(vp.ctx.strokeStyle).toBe('black');
+  });
+
+  test('drawLine with circle end cap draws circle', () => {
+    const vp = createMockViewport();
+    const lineProps = {
+      from: Point.from(0, 0, 0),
+      to: Point.from(100, 100, 0),
+      end: 'circle' as const,
+      endSize: 6,
+      endStyle: 'filled' as const,
+    };
+
+    // Add arc method to mock ctx
+    vp.ctx.arc = vi.fn();
+
+    drawLine(vp, lineProps);
+
+    expect(vp.ctx.arc).toHaveBeenCalled();
+    expect(vp.ctx.fill).toHaveBeenCalled();
+  });
+
+  test('drawLine with circle at start and arrow at end', () => {
+    const vp = createMockViewport();
+    const lineProps = {
+      from: Point.from(0, 0, 0),
+      to: Point.from(100, 100, 0),
+      start: 'circle' as const,
+      end: 'arrow' as const,
+      startSize: 5,
+      endSize: 8,
+      startStyle: 'filled' as const,
+      endStyle: 'empty' as const,
+    };
+
+    // Add arc method to mock ctx
+    vp.ctx.arc = vi.fn();
+
+    drawLine(vp, lineProps);
+
+    expect(vp.ctx.arc).toHaveBeenCalled();
+    expect(vp.ctx.stroke).toHaveBeenCalled();
+    expect(vp.ctx.fill).toHaveBeenCalled();
   });
 });
