@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { deg2rad, Frame, Transform, compose, map, Point, Vector, add, Rotation } from '../src';
+import { deg2rad, Frame, Transform, compose, map, Point, Vector, add, Rotation, rad2deg, round } from '../src';
 import { absolute, relative } from '../src/operations.ts';
 
 describe('Operations', () => {
@@ -59,5 +59,20 @@ describe('Operations', () => {
     expect(relPoint.x).toBe(1);
     expect(relPoint.y).toBe(1);
     expect(relPoint.z).toBe(1);
+  });
+
+  test.each([0, 12.5, -73.2])('deg2rad(rad2deg(%s)) returns the original value', (value) => {
+    expect(deg2rad(rad2deg(value))).toBeCloseTo(value, 10);
+  });
+
+  test.each([0, Math.PI / 6, -Math.PI * 0.73])('rad2deg(deg2rad(%s)) returns the original value', (value) => {
+    expect(rad2deg(deg2rad(value))).toBeCloseTo(value, 10);
+  });
+
+  test('round handles both positive and negative values', () => {
+    expect(round(1.2345, 2)).toBeCloseTo(1.23, 10);
+    expect(round(-1.2345, 2)).toBeCloseTo(-1.23, 10);
+    expect(round(123.555, 0)).toBe(124);
+    expect(round(-123.555, 0)).toBe(-124);
   });
 });
