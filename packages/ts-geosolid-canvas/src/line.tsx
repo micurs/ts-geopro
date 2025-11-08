@@ -1,7 +1,8 @@
 import { createEffect, useContext } from 'solid-js';
 import { canvasContext } from './canvas/canvas-context.ts';
 
-import { Point, Vector, UnitVector, Frame } from '@micurs/ts-geopro';
+import { Vector, UnitVector, Frame } from '@micurs/ts-geopro';
+import type { Point } from '@micurs/ts-geopro';
 import { getScaledWidth } from './canvas/utils.ts';
 
 import type { Component } from 'solid-js';

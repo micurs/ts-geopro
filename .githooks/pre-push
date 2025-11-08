@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# Pre-push hook to run build, lint, and test before pushing
+# This hook prevents pushing if any of these steps fail
+
+echo "🔨 Running pre-push checks..."
+echo ""
+
+# Get the project root directory (where package.json is located)
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+cd "$PROJECT_ROOT" || exit 1
+
+# Run build
+echo "📦 Building project..."
+if ! pnpm run build; then
+    echo "❌ Build failed. Push aborted."
+    exit 1
+fi
+echo "✅ Build successful"
+echo ""
+
+# Run lint
+echo "🔍 Linting code..."
+if ! pnpm run lint; then
+    echo "❌ Lint failed. Push aborted."
+    exit 1
+fi
+echo "✅ Lint passed"
+echo ""
+
+# Run tests
+echo "🧪 Running tests..."
+if ! pnpm run test; then
+    echo "❌ Tests failed. Push aborted."
+    exit 1
+fi
+echo "✅ Tests passed"
+echo ""
+
+echo "✨ All pre-push checks passed! Proceeding with push..."
+exit 0
+

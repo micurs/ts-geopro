@@ -3,7 +3,7 @@ import { canvasContext } from './canvas/canvas-context.ts';
 
 import type { Component } from 'solid-js';
 import type { Viewport } from './canvas/types.ts';
-import { Point } from '@micurs/ts-geopro';
+import type { Point } from '@micurs/ts-geopro';
 import { getScaledWidth } from './canvas/utils.ts';
 
 interface EllipseProps {

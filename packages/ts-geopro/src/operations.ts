@@ -9,24 +9,28 @@ import type { Projection } from './projection.ts';
 
 export type Mappable = Vector | Point | UnitVector;
 
+const isArrayLike = (v: unknown): v is { length: number } => {
+  return Array.isArray(v) || ArrayBuffer.isView(v);
+};
+
 export const isVec4 = (v: unknown): v is vec4 => {
-  return (v as vec4)?.length === 4;
+  return isArrayLike(v) && (v as vec4).length === 4;
 };
 
 export const isVec3 = (v: unknown): v is vec3 => {
-  return (v as vec4)?.length === 3;
+  return isArrayLike(v) && (v as vec3).length === 3;
 };
 
 export const isFrame = (d: unknown): d is Frame => {
-  return d && (d as Frame).isFrame !== undefined ? true : false;
+  return d instanceof Frame;
 };
 
 export const isVector = (d: unknown): d is Vector => {
-  return d && (d as Vector).isVector !== undefined ? true : false;
+  return d instanceof Vector;
 };
 
 export const isUnitVector = (d: unknown): d is UnitVector => {
-  return d && (d as UnitVector).isUnitVector !== undefined ? true : false;
+  return d instanceof UnitVector;
 };
 
 /**
