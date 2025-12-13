@@ -1,67 +1,69 @@
+# ts-geopro LLM Agent Guide
 
-# ts-geopro: 3D Geometric Programming Library
+## Overview
 
-This project, `ts-geopro`, is a TypeScript-based library for 3D geometric computations and transformations. It is designed with a focus on providing a comprehensive set of tools for handling 3D geometric operations, including coordinate transformations, vector and matrix operations, and point manipulation. The library is built with TypeScript for type safety and uses `gl-matrix` for optimized matrix operations. It has zero dependencies other than `gl-matrix`.
+- `ts-geopro` is a TypeScript monorepo that houses the core 3D geometric programming library plus companion demo apps and a SolidJS canvas component package.
+- Runtime dependencies are intentionally minimal: the core library only depends on `gl-matrix`; other packages depend on SolidJS/roughjs as needed.
+- The workspace is managed with `pnpm` (see `packageManager` in `package.json`) and tasks are orchestrated with `turbo`.
+- Tooling stack: TypeScript, Vite, Vitest (with coverage), Deno for scripts/CLI demos, and optional `tea` CLI + `.gitea-helper.sh` for issue/PR automation.
 
-## Project Structure
+## Repository Layout
 
-The project is a monorepo managed with `pnpm` and `turbo`. It contains the core `ts-geopro` library and two demo applications that showcase its usage.
+- `packages/ts-geopro`: Core library with geometric entities (`src/geo-entities`), transformations (`src/transform.ts`, `src/rotation.ts`), operations/utilities (`src/operations.ts`, `src/math.ts`), and bundled exports (`src/index.ts`). Tests live in `packages/ts-geopro/tests` and emit coverage into `packages/ts-geopro/tests-coverage`. Publishing metadata resides in `jsr.json`.
+- `packages/ts-geosolid-canvas`: SolidJS canvas components (Canvas, Line, PerfectGrid, Ellipse, Rectangle) with RoughJS styling and viewport controls; depends on `@micurs/ts-geopro`. Demo config sits under `demo/` and `vite.demo.config.ts`.
+- `apps/canvas-demo`: Basic Vite app that renders a 3D scene using `@micurs/ts-geopro` (`pnpm dev:c`).
+- `apps/projection-demo`: Visualization playground for projection math using the core library (`pnpm dev:p` or `pnpm --filter projection-demo dev`).
+- `apps/quadretti`: SolidJS app that draws on canvas via both `@micurs/ts-geopro` and `@micurs/ts-geosolid-canvas` (`pnpm dev:q`).
+- `apps/cli-demos`: Small TypeScript scripts executed with Deno (run via `pnpm cli-demos`) to showcase CLI usage.
+- Supporting files: `.gitea/workflows/verify-pr.yml` (CI), `.githooks/pre-push` installed via `scripts/install-hooks.sh`, `.gitea-helper.sh` for Gitea automation, and `scripts/update-versions.ts` to bump package versions.
 
-- **`packages/ts-geopro`**: This is the core library, containing all the geometric entities and transformation logic.
-- **`apps/canvas-demo`**: A demo application that uses the `ts-geopro` library to render 3D objects on an HTML canvas.
-- **`apps/quadretti`**: Another demo application, built with Solid.js, that demonstrates the use of the library for 2D drawing on a canvas.
-- **`apps/cli-demos`**: A set of command-line demos that showcase basic vector and point operations.
+## Development & Tooling
 
-## Core Library (`ts-geopro`)
+- Install dependencies with `pnpm install` (postinstall automatically copies git hooks from `.githooks/`).
+- Common workspace commands:
+  - `pnpm build` → runs turbo build across packages (non-cached) and outputs to each `dist/`.
+  - `pnpm lint` → invokes each package's lint task (packages use Deno lint configs).
+  - `pnpm test` → turbo task that depends on lint/build and runs Vitest with coverage where configured.
+  - `pnpm dev:c`, `pnpm dev:p`, `pnpm dev:q`, `pnpm dev:gsc` → start watch builds for the canvas demo, projection demo, quadretti, and `@micurs/ts-geosolid-canvas` respectively.
+  - `pnpm cli-demos` → executes `apps/cli-demos/point-vector.ts` with Deno.
+- To run package-specific scripts, use `pnpm --filter <package> <script>` (e.g., `pnpm --filter @micurs/ts-geopro watch:test`).
 
-The core library is located in `packages/ts-geopro`. It provides a set of classes for representing and manipulating geometric entities in 3D space.
+## Contribution Workflow
 
-### Geometric Entities
+1. Open an issue describing the bugfix/feature before coding; track ongoing work through the issue.
+2. Branch off `main`, naming the branch after the issue (e.g., `feature/issue-123`), and keep commits scoped/atomic.
+3. Reference the issue ID in commit messages and PR descriptions.
+4. Add/update tests for every behavior change.
+5. Run `pnpm lint`, `pnpm build`, and `pnpm test` locally (the pre-push hook enforces this).
+6. Use `tea` CLI or `./.gitea-helper.sh` to create/update issues and PRs against the Gitea instance (`tea login` or `GITEA_TOKEN` env var required).
+7. When opening a PR, link the issue(s) being addressed and wait for approval; merges happen after CI (Verify Pull Request workflow) passes.
 
-The fundamental geometric entities are defined in `packages/ts-geopro/src/geo-entities`:
+## Architecture & Coding Guidelines
 
-- **`Point`**: Represents a point in 3D space with homogeneous coordinates.
-- **`Vector`**: Represents a 3D vector.
-- **`UnitVector`**: A normalized 3D vector.
-- **`Frame`**: Represents a coordinate reference frame, enabling transformations between different coordinate systems.
-- **`Ray`**: Represents a ray in 3D space, defined by an origin point and a direction vector.
+- Favor functional, immutable data structures. Core geometric entities (`Point`, `Vector`, `UnitVector`, `Frame`, `Ray`) never mutate; transformations create new instances.
+- `Transform` (4x4 matrices via `gl-matrix`) handles affine transforms, while `Rotation` focuses on quaternion-based rotations. Use the curried `map()` helper to apply transforms, `compose()` to combine transforms, `add()` for vector/point addition, and `absolute()`/`relative()` for frame conversion.
+- Keep exports centralized in `packages/ts-geopro/src/index.ts` for tree-shakeable builds. Maintain ES Module semantics (the package ships as ESM).
+- `@micurs/ts-geosolid-canvas` follows SolidJS patterns: component-based rendering, context for shared canvas state, CSS Modules for scoped styling, RoughJS for sketch aesthetics, and viewport transform utilities powered by the core library.
+- Demo apps illustrate different integration patterns:
+  - `canvas-demo`: HTML canvas rendering pipeline using rays, points, frames.
+  - `projection-demo`: Math-first visualization for projection logic.
+  - `quadretti`: Reactive drawing with zoom/pan, uses Solid components and viewport transforms.
+  - `cli-demos`: Quick scripts demonstrating vector math and transforms.
 
-### Transformations
+## Testing, CI, and Publishing
 
-The library provides a powerful set of tools for performing geometric transformations:
+- `pnpm test` leverages Vitest; `packages/ts-geopro` enforces coverage (`@vitest/coverage-v8`) and writes reports to `tests-coverage/`.
+- Linting uses `deno lint` per package configs (`deno.lint.json`).
+- `.gitea/workflows/verify-pr.yml` installs Node 20, Deno 2.x, pnpm, and runs `pnpm install` + `pnpm test` on pull requests.
+- Publishing to JSR is handled inside `packages/ts-geopro`:
+  - Dry run: `pnpm --filter @micurs/ts-geopro jsr:test-publish`
+  - Real publish: `pnpm --filter @micurs/ts-geopro jsr:publish`
+- Use `pnpm version-update` (runs the Deno script) to bump versions consistently across packages before publishing.
 
-- **`Transform`**: Represents a general affine transformation in 3D space, including rotation, translation, and scaling. It is implemented using a 4x4 matrix.
-- **`Rotation`**: Represents a rotation in 3D space, implemented using quaternions for efficient and stable rotations.
+## Key Reminders for Agents
 
-### Operations
-
-The library offers a rich set of operations that can be performed on the geometric entities:
-
-- **`map`**: A curried function that applies a transformation to a geometric entity.
-- **`compose`**: A function to compose multiple transformations into a single one.
-- **`add`**: A function to add vectors or a vector and a point.
-- **`absolute` and `relative`**: Functions to convert coordinates between different reference frames.
-
-## Demo Applications
-
-The two demo applications provide practical examples of how to use the `ts-geopro` library.
-
-### `canvas-demo`
-
-This application demonstrates how to use the library to create a 3D scene and render it on an HTML canvas. It showcases the creation of geometric entities like `Ray`, `Point`, and `Frame`, and their use in a 3D environment.
-
-### `quadretti`
-
-This application is built with Solid.js and uses the `ts-geopro` library for 2D drawing on a canvas. It demonstrates how to create and manipulate 2D shapes like lines, rectangles, and ellipses using the library's core concepts.
-
-## Development and Tooling
-
-The project uses modern TypeScript tooling:
-
-- **`pnpm`**: For package management.
-- **`turbo`**: For managing the monorepo and running tasks efficiently.
-- **`vite`**: As a build tool for the library and demo applications.
-- **`vitest`**: For running tests.
-- **`deno`**: For running scripts and CLI demos.
-
-The project has a comprehensive test suite, ensuring the correctness of the geometric computations. The tests are located in `packages/ts-geopro/tests`.
+- Respect the monorepo structure and avoid touching generated `dist/` outputs unless explicitly necessary.
+- When adding files, default to TypeScript + Vite conventions that already exist; match existing ESLint/Deno lint preferences.
+- Keep documentation synchronized: update `readme.md` (and package-specific READMEs) alongside library changes when APIs shift.
+- If you introduce new tooling or dependencies, update `package.json`, `pnpm-lock.yaml`, and (when relevant) `turbo.json`.
+- Verify any assumption against the actual source—geometric helpers are thoroughly typed, so lean on the existing APIs instead of reimplementing math utilities.

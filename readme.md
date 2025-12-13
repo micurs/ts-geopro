@@ -114,7 +114,21 @@ pnpm run watch:test
 
 # Build the library
 pnpm run build
+
+# Run a demo app (examples below)
+pnpm dev quadretti
 ```
+
+### Demo Applications
+
+Use `pnpm dev <app-name>` to start any demo located under `apps/`. App names match their folder names exactly, so `pnpm dev quadretti` runs `apps/quadretti`. Available options:
+
+- `canvas-demo` – renders low-level canvas experiments backed by `ts-geopro`.
+- `projection-demo` – shows the projection playground with GPU math helpers.
+- `quadretti` – SolidJS-based UI for experimenting with the library.
+- `cli-demos` – runs the Deno-based CLI samples (executes `point-vector.ts`).
+
+Each command compiles shared packages first (through Turborepo) before launching the selected app.
 
 ## Technical Details
 

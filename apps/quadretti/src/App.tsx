@@ -1,28 +1,34 @@
-import type { Component } from 'solid-js';
-import { Canvas, Line, Rectangle, Ellipse, PerfectGrid } from '@micurs/ts-geosolid-canvas';
-import { Point } from '@micurs/ts-geopro';
+import type { Component } from "solid-js";
+import {
+  Canvas,
+  Ellipse,
+  Line,
+  PerfectGrid,
+  Rectangle,
+} from "@micurs/ts-geosolid-canvas";
+import { Point } from "@micurs/ts-geopro";
 
 const App: Component = () => {
   return (
-    <Canvas id='quadretti'>
+    <Canvas id="quadretti">
       <PerfectGrid
         showOrigin={true}
-        alpha={0.5}
+        alpha={0.1}
         steps={10}
       />
       <Line
         from={Point.from(-50, 50, 0)}
         to={Point.from(50, -50, 0)}
-        color='red'
-        end='arrow'
+        color="red"
+        end="arrow"
         endSize={8}
-        width={1}
+        width={0.1}
       />
       <Line
         from={Point.from(50, 50, 0)}
         to={Point.from(-50, -50, 0)}
-        color='yellow'
-        end='arrow'
+        color="yellow"
+        end="arrow"
         endSize={8}
         width={1}
       />
@@ -30,17 +36,17 @@ const App: Component = () => {
         topLeft={Point.from(-60, 80, 0)}
         width={190}
         height={100}
-        color='lightgray'
+        color="lightgray"
         strokeWidth={1}
-        fill='rgba(200, 200, 200, 0.4)'
+        fill="rgba(200, 200, 200, 0.4)"
       />
       <Ellipse
         center={Point.from(0, -30, 0)}
         width={50}
         height={35}
-        color='green'
+        color="green"
         strokeWidth={1}
-        fill='rgba(100, 250, 120, 0.8)'
+        fill="rgba(100, 250, 120, 0.8)"
       />
     </Canvas>
   );

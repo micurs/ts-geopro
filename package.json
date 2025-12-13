@@ -10,9 +10,7 @@
     "vite-plugin-dts": "^4.5.4"
   },
   "scripts": {
-    "dev:c": "turbo run dev:c",
-    "dev:p": "turbo run dev:p",
-    "dev:q": "turbo run dev:q",
+    "dev": "turbo run dev --filter",
     "dev:gsc": "turbo run dev --filter=@micurs/ts-geosolid-canvas",
     "build": "turbo run build",
     "build:gsc": "turbo run build --filter=@micurs/ts-geosolid-canvas",
