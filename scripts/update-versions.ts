@@ -103,7 +103,7 @@ const main = async (update: UpdateType) => {
   console.log('Updating Version to:', semver.format(newVersion));
 
   await updateVersion(newVersion, './packages/ts-geopro');
-  await updateVersion(newVersion, './apps/cli-demos');
+  await updateVersion(newVersion, './demos/cli');
   await updateVersion(newVersion, '.');
 };
 

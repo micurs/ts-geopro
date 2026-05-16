@@ -1,8 +1,9 @@
 {
   "version": "0.0.4",
-  "name": "cli-demos",
+  "name": "cli",
   "scripts": {
-    "dev": "deno run point-vector.ts"
+    "dev": "deno run point-vector.ts",
+    "start": "deno run point-vector.ts"
   },
   "dependencies": {
     "@micurs/ts-geopro": "workspace:*"

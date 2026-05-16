@@ -1,11 +1,12 @@
 {
-  "name": "canvas-demo",
+  "name": "canvas",
   "private": true,
   "version": "0.0.4",
   "type": "module",
   "scripts": {
     "dev": "tsc && vite",
     "build": "tsc && vite build",
+    "start": "vite preview",
     "preview": "vite preview"
   },
   "dependencies": {

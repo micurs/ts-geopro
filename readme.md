@@ -116,19 +116,22 @@ pnpm run watch:test
 pnpm run build
 
 # Run a demo app (examples below)
-pnpm dev quadretti
+pnpm dev:demo quadretti
+
+# Run a built demo app
+pnpm start:demo quadretti
 ```
 
 ### Demo Applications
 
-Use `pnpm dev <app-name>` to start any demo located under `apps/`. App names match their folder names exactly, so `pnpm dev quadretti` runs `apps/quadretti`. Available options:
+Use `pnpm dev:demo <demo-name>` to start any demo located under `demos/`. Use `pnpm start:demo <demo-name>` to build and run the same demo outside dev mode. Demo names match their folder names exactly, so `pnpm dev:demo quadretti` runs `demos/quadretti`. Available options:
 
-- `canvas-demo` – renders low-level canvas experiments backed by `ts-geopro`.
-- `projection-demo` – shows the projection playground with GPU math helpers.
+- `canvas` – renders low-level canvas experiments backed by `ts-geopro`.
+- `projection` – shows the projection playground with GPU math helpers.
 - `quadretti` – SolidJS-based UI for experimenting with the library.
-- `cli-demos` – runs the Deno-based CLI samples (executes `point-vector.ts`).
+- `cli` – runs the Deno-based CLI samples (executes `point-vector.ts`).
 
-Each command compiles shared packages first (through Turborepo) before launching the selected app.
+Dev commands compile shared packages first (through Turborepo) before launching the selected app. Start commands build the selected demo and then launch its production start script.
 
 ## Technical Details
 

@@ -18,6 +18,10 @@
       "dependsOn": [
         "^build"
       ]
+    },
+    "start": {
+      "persistent": true,
+      "cache": false
     }
   }
 }
