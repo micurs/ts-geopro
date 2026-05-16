@@ -1,12 +1,10 @@
-import { createEffect, useContext } from 'solid-js';
-import { canvasContext } from './canvas/canvas-context.ts';
-
 import type { Component } from 'solid-js';
 import type { Viewport } from './canvas/types.ts';
 import type { Point } from '@micurs/ts-geopro';
 import { getScaledWidth } from './canvas/utils.ts';
+import { buildCanvasComponent } from './build-canvas-component.tsx';
 
-interface RectangleProps {
+export interface RectangleProps {
   topLeft: Point;
   width: number;
   height: number;
@@ -28,16 +26,5 @@ export const drawRectangle = (vp: Viewport, rect: RectangleProps) => {
   ctx.strokeRect(rect.topLeft.x, rect.topLeft.y, rect.width, rect.height);
 };
 
-export const Rectangle: Component<RectangleProps> = (props: RectangleProps) => {
-  const ctx = useContext(canvasContext);
-
-  createEffect(() => {
-    const vp = ctx?.vp();
-    if (!vp) {
-      return;
-    }
-    drawRectangle(vp, props);
-  });
-
-  return null;
-};
+export const Rectangle: Component<RectangleProps> =
+  buildCanvasComponent<RectangleProps>(drawRectangle);

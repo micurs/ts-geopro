@@ -36,6 +36,36 @@ Main canvas component with viewport management, zoom/pan controls, and transform
 
 See the quadretti app for usage examples.
 
+### Building custom canvas components
+
+Use `buildCanvasComponent()` to create SolidJS components from a drawing
+function. The generated component draws reactively inside the nearest `Canvas`
+context and receives the current viewport plus the component props.
+
+```tsx
+import { buildCanvasComponent } from '@micurs/ts-geosolid-canvas';
+import type { Point } from '@micurs/ts-geopro';
+
+interface CrossProps {
+  center: Point;
+  size: number;
+  color?: string;
+}
+
+const Cross = buildCanvasComponent<CrossProps>((vp, props) => {
+  const { ctx } = vp;
+  const halfSize = props.size / 2;
+
+  ctx.strokeStyle = props.color ?? 'black';
+  ctx.beginPath();
+  ctx.moveTo(props.center.x - halfSize, props.center.y);
+  ctx.lineTo(props.center.x + halfSize, props.center.y);
+  ctx.moveTo(props.center.x, props.center.y - halfSize);
+  ctx.lineTo(props.center.x, props.center.y + halfSize);
+  ctx.stroke();
+});
+```
+
 ## Version
 
-0.0.1
+0.1.0

@@ -1,9 +1,7 @@
-import { createEffect, useContext } from 'solid-js';
-import { canvasContext } from './canvas/canvas-context.ts';
-
 import { Vector, UnitVector, Frame } from '@micurs/ts-geopro';
 import type { Point } from '@micurs/ts-geopro';
 import { getScaledWidth } from './canvas/utils.ts';
+import { buildCanvasComponent } from './build-canvas-component.tsx';
 
 import type { Component } from 'solid-js';
 import type { Viewport } from './canvas/types.ts';
@@ -11,7 +9,7 @@ import type { Viewport } from './canvas/types.ts';
 /**
  * Properties for the Line component
  */
-interface LineProps {
+export interface LineProps {
   /** Starting point of the line */
   from: Point;
   /** Ending point of the line */
@@ -189,17 +187,4 @@ export const drawLine = (vp: Viewport, line: LineProps) => {
  * />
  * ```
  */
-export const Line: Component<LineProps> = (props: LineProps) => {
-  const ctx = useContext(canvasContext);
-
-  /* redraw reactively if props change */
-  createEffect(() => {
-    const vp = ctx?.vp();
-    if (!vp) {
-      return;
-    }
-    drawLine(vp, props);
-  });
-
-  return null;
-};
+export const Line: Component<LineProps> = buildCanvasComponent<LineProps>(drawLine);

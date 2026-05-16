@@ -1,10 +1,8 @@
-import { createEffect, useContext } from 'solid-js';
-import { canvasContext } from './canvas/canvas-context.ts';
-
 import type { Component } from 'solid-js';
 import type { Viewport } from './canvas/types.ts';
+import { buildCanvasComponent } from './build-canvas-component.tsx';
 
-interface PerfectGridProps {
+export interface PerfectGridProps {
   showOrigin?: boolean; // Whether to show the origin axes
   alpha?: number; // Opacity of the grid lines, default is 0.5
   steps?: number; // Number of steps for the grid, default is 10
@@ -94,17 +92,5 @@ export const renderPerfectGrid = (viewport: Viewport, props: PerfectGridProps) =
   ctx.globalAlpha = 1;
 };
 
-export const PerfectGrid: Component<PerfectGridProps> = (props: PerfectGridProps) => {
-  const ctx = useContext(canvasContext);
-
-  /* redraw if props or canvasContext changes */
-  createEffect(() => {
-    const vp = ctx?.vp();
-    if (!vp) {
-      return;
-    }
-    renderPerfectGrid(vp, props);
-  });
-
-  return null;
-};
+export const PerfectGrid: Component<PerfectGridProps> =
+  buildCanvasComponent<PerfectGridProps>(renderPerfectGrid);

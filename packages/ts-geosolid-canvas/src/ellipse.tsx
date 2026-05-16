@@ -1,12 +1,10 @@
-import { createEffect, useContext } from 'solid-js';
-import { canvasContext } from './canvas/canvas-context.ts';
-
 import type { Component } from 'solid-js';
 import type { Viewport } from './canvas/types.ts';
 import type { Point } from '@micurs/ts-geopro';
 import { getScaledWidth } from './canvas/utils.ts';
+import { buildCanvasComponent } from './build-canvas-component.tsx';
 
-interface EllipseProps {
+export interface EllipseProps {
   center: Point;
   width: number;
   height: number;
@@ -38,16 +36,5 @@ export const drawEllipse = (vp: Viewport, ellipse: EllipseProps) => {
   ctx.stroke();
 };
 
-export const Ellipse: Component<EllipseProps> = (props: EllipseProps) => {
-  const ctx = useContext(canvasContext);
-
-  createEffect(() => {
-    const vp = ctx?.vp();
-    if (!vp) {
-      return;
-    }
-    drawEllipse(vp, props);
-  });
-
-  return null;
-};
+export const Ellipse: Component<EllipseProps> =
+  buildCanvasComponent<EllipseProps>(drawEllipse);

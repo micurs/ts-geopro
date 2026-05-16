@@ -2,11 +2,15 @@
 
 // Canvas component
 export { Canvas } from './canvas.tsx';
+export {
+  buildCanvasComponent,
+  type CanvasDrawFn,
+} from './build-canvas-component.tsx';
 
 // Shape components
-export { Line } from './line.tsx';
-export { PerfectGrid } from './perfect-grid.tsx';
-export { Ellipse } from './ellipse.tsx';
-export { Rectangle } from './rectangle.tsx';
+export { Line, type LineProps } from './line.tsx';
+export { PerfectGrid, type PerfectGridProps } from './perfect-grid.tsx';
+export { Ellipse, type EllipseProps } from './ellipse.tsx';
+export { Rectangle, type RectangleProps } from './rectangle.tsx';
 
-export const version = '0.0.1';
+export const version = '0.1.0';
