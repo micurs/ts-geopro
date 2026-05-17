@@ -22,7 +22,7 @@ jobs:
           node-version: 20 # Specify the Node.js version
 
       - name: Set up Deno
-        uses: denoland/setup-deno@v2
+        uses: denoland/setup-deno@v1
         with:
           deno-version: v2.x # Specify the Deno version
 

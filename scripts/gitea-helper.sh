@@ -1,15 +1,20 @@
 #!/bin/bash
 # Gitea API Helper Script
 # Usage examples:
-#   ./gitea-helper.sh list                         # List open issues
-#   ./gitea-helper.sh create "Title" "Body"        # Create new issue
-#   ./gitea-helper.sh comment 16 "Message"         # Add comment to issue #16
-#   ./gitea-helper.sh close 16                     # Close issue #16
-#   ./gitea-helper.sh reopen 16                    # Reopen issue #16
+#   ./scripts/gitea-helper.sh list                         # List open issues
+#   ./scripts/gitea-helper.sh create "Title" "Body"        # Create new issue
+#   ./scripts/gitea-helper.sh comment 16 "Message"         # Add comment to issue #16
+#   ./scripts/gitea-helper.sh close 16                     # Close issue #16
+#   ./scripts/gitea-helper.sh reopen 16                    # Reopen issue #16
+#   ./scripts/gitea-helper.sh pr create "Title" "Body" "head-branch" "base-branch"
+#   ./scripts/gitea-helper.sh pr comments 46               # List unresolved PR comments
+#   ./scripts/gitea-helper.sh pr comment src/file.ts 12 < comment.md
+#   ./scripts/gitea-helper.sh pr reply 330 < reply.md
 
 GITEA_URL="http://gitea.micurs.com:3000"
 GITEA_TOKEN="${GITEA_TOKEN:-$(grep 'token:' ~/Library/Application\ Support/tea/config.yml 2>/dev/null | head -1 | awk '{print $2}')}"
 REPO="micurs/ts-geopro"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -z "$GITEA_TOKEN" ]; then
   echo "Error: GITEA_TOKEN not found. Set GITEA_TOKEN env var or ensure tea CLI is configured."
@@ -83,21 +88,8 @@ case "$1" in
     ;;
 
   pr)
-    TITLE="$2"
-    BODY="$3"
-    HEAD="$4"
-    BASE="${5:-micurs/projection-2}"
-    if [ -z "$TITLE" ] || [ -z "$BODY" ] || [ -z "$HEAD" ]; then
-      echo "Usage: $0 pr <title> <body> <head_branch> [base_branch]"
-      echo "Example: $0 pr \"My PR\" \"Description\" \"micurs/my-branch\" \"main\""
-      exit 1
-    fi
-    curl -s -X POST \
-      -H "Authorization: token $GITEA_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d "$(jq -n --arg title "$TITLE" --arg body "$BODY" --arg head "$HEAD" --arg base "$BASE" '{title: $title, body: $body, head: $head, base: $base}')" \
-      "$GITEA_URL/api/v1/repos/$REPO/pulls" | \
-      python3 -c "import sys,json; r=json.load(sys.stdin); print(f'✓ PR #{r[\"number\"]} created: {r[\"title\"]}\n  URL: {r[\"html_url\"]}')"
+    shift
+    GITEA_URL="$GITEA_URL" GITEA_TOKEN="$GITEA_TOKEN" REPO="$REPO" "$SCRIPT_DIR/gitea-pr.sh" "$@"
     ;;
 
   *)
@@ -110,7 +102,10 @@ case "$1" in
     echo "  comment <num> <text>              Add comment to issue"
     echo "  close <num>                       Close issue"
     echo "  reopen <num>                      Reopen issue"
-    echo "  pr <title> <body> <head> [base]   Create pull request"
+    echo "  pr create <title> <body> <head> [base]  Create pull request"
+    echo "  pr comments <num>                       List unresolved PR comments"
+    echo "  pr comment <file> <line>                Add review comment from stdin"
+    echo "  pr reply <comment-id>                   Add PR reply from stdin"
     exit 1
     ;;
 esac
