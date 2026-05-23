@@ -199,4 +199,76 @@ describe("Line component", () => {
     expect(vp.ctx.stroke).toHaveBeenCalled();
     expect(vp.ctx.fill).toHaveBeenCalled();
   });
+
+  test("arrow geometry is invariant under scaleFactor (world-space coordinates)", () => {
+    const captureArrowCoords = (scaleFactor: number) => {
+      const vp = createMockViewport();
+      vp.scaleFactor = scaleFactor;
+      const calls: Array<{ type: string; args: number[] }> = [];
+      vp.ctx.moveTo = vi.fn((x: number, y: number) => calls.push({ type: "moveTo", args: [x, y] }));
+      vp.ctx.lineTo = vi.fn((x: number, y: number) => calls.push({ type: "lineTo", args: [x, y] }));
+
+      drawLine(vp, {
+        from: Point.from(0, 0, 0),
+        to: Point.from(100, 0, 0),
+        end: "arrow",
+        endSize: 10,
+        endStyle: "empty",
+      });
+
+      return calls;
+    };
+
+    const coords05 = captureArrowCoords(0.5);
+    const coords2 = captureArrowCoords(2);
+
+    expect(coords05).toEqual(coords2);
+  });
+
+  test("circle geometry is invariant under scaleFactor (world-space coordinates)", () => {
+    const captureCircleRadius = (scaleFactor: number) => {
+      const vp = createMockViewport();
+      vp.scaleFactor = scaleFactor;
+      let capturedRadius = 0;
+      vp.ctx.arc = vi.fn((_x: number, _y: number, r: number) => { capturedRadius = r; });
+
+      drawLine(vp, {
+        from: Point.from(0, 0, 0),
+        to: Point.from(100, 0, 0),
+        end: "circle",
+        endSize: 10,
+        endStyle: "filled",
+      });
+
+      return capturedRadius;
+    };
+
+    const radius05 = captureCircleRadius(0.5);
+    const radius2 = captureCircleRadius(2);
+
+    expect(radius05).toBe(10);
+    expect(radius2).toBe(10);
+  });
+
+  test("line width is clamped at scaleFactor < 1 via getScaledWidth", () => {
+    const vp05 = createMockViewport();
+    vp05.scaleFactor = 0.5;
+    drawLine(vp05, {
+      from: Point.from(0, 0, 0),
+      to: Point.from(100, 0, 0),
+      width: 2,
+    });
+    // getScaledWidth: width / max(1.0, 0.5) = 2 / 1 = 2
+    expect(vp05.ctx.lineWidth).toBe(2);
+
+    const vp2 = createMockViewport();
+    vp2.scaleFactor = 2;
+    drawLine(vp2, {
+      from: Point.from(0, 0, 0),
+      to: Point.from(100, 0, 0),
+      width: 2,
+    });
+    // getScaledWidth: width / max(1.0, 2) = 2 / 2 = 1
+    expect(vp2.ctx.lineWidth).toBe(1);
+  });
 });

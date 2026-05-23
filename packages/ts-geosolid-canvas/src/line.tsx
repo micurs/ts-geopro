@@ -53,14 +53,11 @@ const drawArrowHead = (
   color: string,
   filled: boolean
 ) => {
-  const { ctx, scaleFactor } = vp;
+  const { ctx } = vp;
   const vOut = Vector.from(0, 0, 1);
 
-  // Use the direction to create the frame (k-axis will be the arrow direction)
   const fr = Frame.from2Vectors(point, direction, vOut);
-
-  // Scale factor for arrow size
-  const arrowScale = size * scaleFactor;
+  const arrowScale = size;
 
   const wingXP = Vector.from(fr.j).scale(arrowScale);
   const wingXM = Vector.from(fr.j).scale(-arrowScale);
@@ -102,8 +99,8 @@ const drawCircle = (
   color: string,
   filled: boolean
 ) => {
-  const { ctx, scaleFactor } = vp;
-  const radius = size * scaleFactor;
+  const { ctx } = vp;
+  const radius = size;
 
   ctx.beginPath();
   ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);

@@ -42,7 +42,7 @@ const App = () => {
         color="#00ff00"
         width={1}
         end="arrow"
-        endSize={8}
+        endSize={3}
         endStyle="filled"
       />
 
@@ -54,8 +54,8 @@ const App = () => {
         width={2}
         start="arrow"
         end="arrow"
-        startSize={6}
-        endSize={6}
+        startSize={3}
+        endSize={3}
         startStyle="empty"
         endStyle="empty"
       />
@@ -67,7 +67,7 @@ const App = () => {
         color="#ffffff"
         width={2}
         end="arrow"
-        endSize={10}
+        endSize={12}
         endStyle="filled"
         endColor="#ff0000"
       />
@@ -77,15 +77,15 @@ const App = () => {
         <Line
           from={Point.from(-50, 150, 0)}
           to={Point.from(50, 150, 0)}
-          color="#00ffff"
+          color="#20f0ff"
           width={2}
           start="circle"
           end="arrow"
-          startSize={6}
-          endSize={8}
+          startSize={2}
+          endSize={4}
           startStyle="filled"
-          endStyle="empty"
-          startColor="#ff00ff"
+          endStyle="filled"
+          startColor="#ff2020"
         />
       </Rotation2D>
 
