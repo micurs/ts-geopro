@@ -130,3 +130,5 @@
 - Verify any assumption against the actual source—geometric helpers are
   thoroughly typed, so lean on the existing APIs instead of reimplementing math
   utilities.
+- Always use curly braces for control flow bodies (`if`, `else`, `for`, `while`,
+  `do`), even for single-line statements.

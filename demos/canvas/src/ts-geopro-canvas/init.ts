@@ -19,11 +19,11 @@ const setup = (options: InitOptions) => {
 
   ctx.reset();
   ctx.setTransform(
-    viewport.transform.direct(0, 0), // 2D Rotations and Scale
-    viewport.transform.direct(1, 0),
+    viewport.transform.direct(0, 0),
+    -viewport.transform.direct(1, 0),
     viewport.transform.direct(0, 1),
-    -viewport.transform.direct(1, 1), // Invert the Y direction
-    viewport.transform.direct(3, 0), // Translation Components
+    -viewport.transform.direct(1, 1),
+    viewport.transform.direct(3, 0),
     viewport.transform.direct(3, 1)
   );
   return viewport;

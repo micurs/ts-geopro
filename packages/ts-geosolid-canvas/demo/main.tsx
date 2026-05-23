@@ -1,13 +1,33 @@
-import { render } from 'solid-js/web';
-import { Canvas, PerfectGrid, Line, Ellipse, Rectangle } from '../src/index.ts';
-import { Point } from '@micurs/ts-geopro';
+import { createSignal, onMount } from "solid-js";
+import { render } from "solid-js/web";
+import {
+  Canvas,
+  Ellipse,
+  Line,
+  PerfectGrid,
+  Rectangle,
+  Rotation2D,
+} from "../src/index.ts";
+import { Point } from "@micurs/ts-geopro";
 
 const App = () => {
+  const [angle1, setAngle1] = createSignal(0);
+  const [angle2, setAngle2] = createSignal(0);
+
+  onMount(() => {
+    setInterval(() => {
+      setAngle1((angle) => angle + 0.01);
+    }, 1000 / 25);
+    setInterval(() => {
+      setAngle2((angle) => angle - 0.01);
+    }, 1000 / 40);
+  });
+
   return (
     <Canvas
-      id='demo-canvas'
+      id="demo-canvas"
       zoom={400}
-      class='w-full h-full'
+      class="w-full h-full"
     >
       {/* Grid background */}
       <PerfectGrid
@@ -16,90 +36,93 @@ const App = () => {
         steps={10}
       />
 
-      {/* Line with filled end arrow */}
       <Line
         from={Point.from(-100, 150, 0)}
         to={Point.from(100, 50, 0)}
-        color='#00ff00'
+        color="#00ff00"
         width={1}
-        end='arrow'
+        end="arrow"
         endSize={8}
-        endStyle='filled'
+        endStyle="filled"
       />
 
       {/* Line with empty arrows at both ends */}
       <Line
         from={Point.from(-150, -50, 0)}
         to={Point.from(-150, 100, 0)}
-        color='#ff6600'
+        color="#ff6600"
         width={2}
-        start='arrow'
-        end='arrow'
+        start="arrow"
+        end="arrow"
         startSize={6}
         endSize={6}
-        startStyle='empty'
-        endStyle='empty'
+        startStyle="empty"
+        endStyle="empty"
       />
 
       {/* Line with custom arrow colors and different sizes */}
       <Line
         from={Point.from(150, 100, 0)}
         to={Point.from(150, -50, 0)}
-        color='#ffffff'
+        color="#ffffff"
         width={2}
-        end='arrow'
+        end="arrow"
         endSize={10}
-        endStyle='filled'
-        endColor='#ff0000'
+        endStyle="filled"
+        endColor="#ff0000"
       />
 
       {/* Line with circle at start and arrow at end */}
-      <Line
-        from={Point.from(-50, 150, 0)}
-        to={Point.from(50, 150, 0)}
-        color='#00ffff'
-        width={2}
-        start='circle'
-        end='arrow'
-        startSize={6}
-        endSize={8}
-        startStyle='filled'
-        endStyle='empty'
-        startColor='#ff00ff'
-      />
-
-      {/* Ellipse at origin */}
-      <Ellipse
-        center={Point.from(0, 0, 0)}
-        width={80}
-        height={120}
-        color='#00ffff'
-        strokeWidth={2}
-        fill='rgba(0, 255, 255, 0.1)'
-      />
-
-      {/* Rectangle in upper right */}
-      <Rectangle
-        topLeft={Point.from(20, 40, 0)}
-        width={60}
-        height={40}
-        color='#ff00ff'
-        strokeWidth={2}
-        fill='rgba(255, 0, 255, 0.1)'
-      />
+      <Rotation2D angle={angle1()} center={Point.from(-50, 150, 0)}>
+        <Line
+          from={Point.from(-50, 150, 0)}
+          to={Point.from(50, 150, 0)}
+          color="#00ffff"
+          width={2}
+          start="circle"
+          end="arrow"
+          startSize={6}
+          endSize={8}
+          startStyle="filled"
+          endStyle="empty"
+          startColor="#ff00ff"
+        />
+      </Rotation2D>
 
       {/* Line diagonal - no arrows (default) */}
       <Line
         from={Point.from(-50, -50, 0)}
         to={Point.from(50, 50, 0)}
-        color='#ffff00'
+        color="#ffff00"
         width={1}
       />
+
+      {/* Rotated group - ellipse continuously rotating around origin */}
+      <Rotation2D angle={angle1()} center={Point.from(0, 0, 0)}>
+        <Ellipse
+          center={Point.from(0, 0, 0)}
+          width={100}
+          height={40}
+          color="#ff8800"
+          strokeWidth={2}
+        />
+      </Rotation2D>
+
+      {/* Rotated group with custom center - rectangle oscillating around its corner */}
+      <Rotation2D angle={angle2()} center={Point.from(-50, 150, 0)}>
+        <Rectangle
+          center={Point.from(-50, 150, 0)}
+          width={100}
+          height={100}
+          color="#88ff00"
+          strokeWidth={2}
+        />
+      </Rotation2D>
     </Canvas>
   );
 };
 
-const root = document.getElementById('canvas-container');
+const root = document.getElementById("canvas-container");
 if (root) {
   render(() => <App />, root);
 }

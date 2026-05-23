@@ -72,4 +72,5 @@ export interface Options {
   zoom: number;
   pan: Coord2D;
   render?: (vp: Viewport) => void;
+  requestRedraw?: () => void;
 }

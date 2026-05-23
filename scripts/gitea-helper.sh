@@ -54,7 +54,7 @@ case "$1" in
     curl -s -X POST \
       -H "Authorization: token $GITEA_TOKEN" \
       -H "Content-Type: application/json" \
-      -d "{\"body\":\"$COMMENT\"}" \
+      -d "$(jq -n --arg body "$COMMENT" '{body: $body}')" \
       "$GITEA_URL/api/v1/repos/$REPO/issues/$ISSUE_NUM/comments" | \
       python3 -c "import sys,json; r=json.load(sys.stdin); print(f'✓ Comment added: {r[\"html_url\"]}')"
     ;;

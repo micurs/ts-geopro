@@ -1,3 +1,4 @@
+import { createSignal, onMount } from "solid-js";
 import type { Component } from "solid-js";
 import {
   Canvas,
@@ -5,10 +6,20 @@ import {
   Line,
   PerfectGrid,
   Rectangle,
+  Rotation2D,
 } from "@micurs/ts-geosolid-canvas";
 import { Point } from "@micurs/ts-geopro";
 
 const App: Component = () => {
+  const [rot, setRot] = createSignal(0);
+
+  onMount(() => {
+    const start = Date.now();
+    setInterval(() => {
+      setRot((Date.now() - start) / 1000 * 0.5);
+    }, 50);
+  });
+
   return (
     <Canvas id="quadretti">
       <PerfectGrid
@@ -33,7 +44,7 @@ const App: Component = () => {
         width={1}
       />
       <Rectangle
-        topLeft={Point.from(-60, 80, 0)}
+        center={Point.from(35, 130, 0)}
         width={190}
         height={100}
         color="lightgray"
@@ -48,6 +59,15 @@ const App: Component = () => {
         strokeWidth={1}
         fill="rgba(100, 250, 120, 0.8)"
       />
+      <Rotation2D angle={rot()} center={Point.from(50, -30, 0)}>
+        <Rectangle
+          center={Point.from(50, -30, 0)}
+          width={60}
+          height={50}
+          color="orange"
+          strokeWidth={1}
+        />
+      </Rotation2D>
     </Canvas>
   );
 };

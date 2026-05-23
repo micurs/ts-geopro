@@ -5,7 +5,7 @@ import { getScaledWidth } from './canvas/utils.ts';
 import { buildCanvasComponent } from './build-canvas-component.tsx';
 
 export interface RectangleProps {
-  topLeft: Point;
+  center: Point;
   width: number;
   height: number;
   color?: string;
@@ -18,12 +18,15 @@ export const drawRectangle = (vp: Viewport, rect: RectangleProps) => {
   ctx.strokeStyle = rect.color || 'black';
   ctx.lineWidth = getScaledWidth(rect.strokeWidth ?? 1, scaleFactor);
 
+  const tlX = rect.center.x - rect.width / 2;
+  const tlY = rect.center.y - rect.height / 2;
+
   if (rect.fill) {
     ctx.fillStyle = rect.fill;
-    ctx.fillRect(rect.topLeft.x, rect.topLeft.y, rect.width, rect.height);
+    ctx.fillRect(tlX, tlY, rect.width, rect.height);
   }
 
-  ctx.strokeRect(rect.topLeft.x, rect.topLeft.y, rect.width, rect.height);
+  ctx.strokeRect(tlX, tlY, rect.width, rect.height);
 };
 
 export const Rectangle: Component<RectangleProps> =
