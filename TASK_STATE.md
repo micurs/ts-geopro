@@ -1,83 +1,40 @@
-# Task State — Ticket #48
+# Task State — Ticket #52
 
 ## Goal
-Implement `Rotation2D` SolidJS component that rotates children around a center point on canvas, with proper full-scene redraws.
+Add `Translate2D` SolidJS component that translates children by a 2D offset on canvas, analogous to `Rotation2D` but for translation.
 
 ## Decisions
-- **rAF-based redraw loop**: Single `requestAnimationFrame` loop in Canvas clears canvas and bumps `redrawVersion` once per frame. Eliminates double-clearing/double-redrawing from competing pipelines.
-- **`needRedraw` flag**: rAF loop skips clear+redraw when nothing changed. `requestRedraw()` called by `draw()` (pan/zoom) and `Rotation2D`'s `createEffect` (angle change).
-- **Synchronous drawing**: `buildCanvasComponent` uses `createRenderEffect` (not `createEffect`) so draws happen synchronously when signals change, before browser paint.
-- **Rectangle `center` over `topLeft`**: `topLeft` was misleading due to Y-axis inversion (canvas +h goes world -y). Changed to `center` for unambiguous positioning.
-- **Rotation center Y-negation**: Rotation center Y is negated in `fromTranslation` because `center` prop is in screen coords (Y-down) but `Transform.fromTranslation` operates in world/mathematical coords (Y-up).
+- **`vector` prop over `dx`/`dy`**: Uses `Vector` from `@micurs/ts-geopro` for consistency with geo-entity types.
+- **Y-negation**: Same as `Rotation2D.center` — `vector` is in screen coords (Y-down) but `Transform.fromTranslation` operates in world/mathematical coords (Y-up).
+- **Context-provider pattern**: Follows `Rotation2D` exactly — `createMemo` for transformed viewport, `createEffect` for `requestRedraw`, passes through parent's `redrawVersion`/`requestRedraw`/`rAFWillClear`.
+- **Animated demo**: Ellipse slides horizontally back and forth between -100 and +100, direction reversals at thresholds to visually prove translation works.
 
 ## Changed Files
 
-### `packages/ts-geosolid-canvas/src/canvas.tsx`
-- Remove `triggerFullRedraw` / `lastRedrawTime` / throttle
-- Remove `createRenderEffect` that cleared on redrawVersion change
-- Add `requestAnimationFrame` loop with `needRedraw` flag: only clears + redraws when something changed
-- `draw()` (pan/zoom/resize) no longer clears or sets transform — only updates viewport signal + calls `requestRedraw()`
-- Remove unused `setupTransformation` / `clear` / `createSignal` from canvas-local scope
-- [PR #49] Add `rAFWillClear` signal, set true before `redrawVersion` bump in rAF loop (fixes #382)
-- [PR #49] Store `rafId` and call `cancelAnimationFrame` on `onCleanup` (fixes #380)
-- [PR #49] Pass `rAFWillClear` through context object
+### `packages/ts-geosolid-canvas/src/translate-2d.tsx`
+- New `Translate2D` component with `vector: Vector` and `children: JSX.Element` props
+- `createMemo` computes modified viewport via `compose(translateTx, vp.transform)`
+- `createEffect` calls `ctx?.requestRedraw()` when `vector` changes
+- Context provider passes `vp: translatedVp` + parent signals
 
-### `packages/ts-geosolid-canvas/src/build-canvas-component.tsx`
-- Switch from `createEffect` to `createRenderEffect` (synchronous drawing on signal change)
-- Remove comments (style consistency)
-- [PR #49] Check `rAFWillClear` in render effect; skip `requestRedraw()` during rAF processing (fixes #382)
-- [PR #49 v2] Wrapped `rAFWillClear` read in `untrack()` to prevent tracking as reactive dependency — `setRAFWillClear(true/false)` no longer reruns effects, avoiding continuous redraw loop
+### `packages/ts-geosolid-canvas/src/index.ts`
+- Added export for `Translate2D` and `Translate2DProps`
 
-### `packages/ts-geosolid-canvas/src/rotation-2d.tsx`
-- Add `createEffect` that calls `ctx?.requestRedraw()` when angle changes
-- Pass `requestRedraw` through context provider alongside `redrawVersion`
-- [PR #49] Track `props.center` alongside `props.angle` in `createEffect` (fixes #378)
-- [PR #49] Pass `rAFWillClear` through context provider
-
-### `packages/ts-geosolid-canvas/src/canvas/canvas-context.ts`
-- Add `requestRedraw` to `CanvasContextValue` interface
-- [PR #49] Add `rAFWillClear` to `CanvasContextValue` interface
-
-### `packages/ts-geosolid-canvas/src/canvas/types.ts`
-- Add `requestRedraw` to `Options` interface
-
-### `packages/ts-geosolid-canvas/src/rectangle.tsx`
-- `RectangleProps.topLeft` → `center`. Draw computes tlX/tlY from center.
-
-### `packages/ts-geosolid-canvas/tests/rotation-2d.test.tsx`
-- Remove `triggerFullRedraw` from `contextStub`
-- Remove unused `noop` helper
-- [PR #49] Add `rAFWillClear` to `contextStub`
+### `packages/ts-geosolid-canvas/tests/translate-2d.test.tsx`
+- New test file with 4 tests (see Tests section)
 
 ### `packages/ts-geosolid-canvas/demo/main.tsx`
-- `Rectangle` uses `center` prop
-- Two rotating groups: ellipse (origin) + rectangle (center)
+- Added `Translate2D` import
+- Added `Vector` import (from `@micurs/ts-geopro`)
+- Added `tx` signal with `dir` variable for oscillation
+- Added interval driving `tx` between -100 and +100 with direction reversal
+- Added `Translate2D` wrapping an `Ellipse` inside Canvas
 
-### `demos/quadretti/src/App.tsx`
-- `Rectangle` uses `center` prop (was still using old `topLeft`)
-- Fixes build error
-
-## PR #49 Review Fixes
-
-### #382: rAFWillClear infinite needRedraw loop
-- Added `rAFWillClear` signal to `CanvasContextValue`
-- rAF loop sets `rAFWillClear = true` before bumping `redrawVersion`, `false` after
-- `buildCanvasComponent` checks `rAFWillClear`: when true (rAF-triggered draw), skips `requestRedraw()`
-- Component prop changes (color, width, center) → render effect draws + calls `requestRedraw()` → canvas clears + redraws → no stale pixels
-- [PR #49 v2] Wrapped `rAFWillClear` read in `untrack()` to prevent tracking as reactive dependency — `setRAFWillClear(true/false)` no longer reruns effects, avoiding continuous redraw loop
-
-### #380: Cancel rAF loop on cleanup
-- `rafId: number | undefined` stores the rAF handle
-- `onCleanup` calls `cancelAnimationFrame(rafId)` to stop loop on unmount
-
-### #378: Track center in Rotation2D createEffect
-- `createEffect` now reads `props.center` alongside `props.angle` → calls `requestRedraw` when center changes
-
-### #376: Rectangle `topLeft` → `center` (documentation note)
-- API break is intentional; will document in release notes
+## Tests
+1. **applies vector translation to viewport transform** — checks `direct(3,0)` and `direct(3,1)` match `Transform.fromTranslation(v.x, -v.y, 0)`
+2. **zero vector produces identity translation offset** — translation part remains 0
+3. **requests redraw when vector changes** — verifies `requestRedraw()` called on each `vector` change
+4. **applies Y-negation to vector** — Y=100 screen coords → translation.y = -100 world
 
 ## Unresolved Issues
 - None
-
-## Next Steps
-- User has a new idea to discuss

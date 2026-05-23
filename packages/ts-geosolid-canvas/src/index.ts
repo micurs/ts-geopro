@@ -15,5 +15,6 @@ export { Rectangle, type RectangleProps } from './rectangle.tsx';
 
 // Transform components
 export { Rotation2D, type Rotation2DProps } from './rotation-2d.tsx';
+export { Translate2D, type Translate2DProps } from './translate-2d.tsx';
 
 export const version = '0.1.0';
