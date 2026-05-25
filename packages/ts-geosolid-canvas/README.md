@@ -24,8 +24,9 @@ Main canvas component with viewport management, zoom/pan controls, and transform
 ### Selection
 - **Select2D** - Selection overlay with interactive handles around children.
   Displays a dashed bounding box and handle circles at corners + rotation
-  point. Click and drag on the bounding box to translate (move) the wrapped
-  content. Hover highlights the box (solid, 2px) and handles (yellow fill).
+  point. Drag the bounding box to translate, or drag the rotation handle
+  (center-top) to rotate. Hover highlights the box (solid, 2px) and handles
+  (yellow fill).
 
   ```tsx
   import { Select2D, Ellipse, Rectangle } from '@micurs/ts-geosolid-canvas';
@@ -53,7 +54,7 @@ Main canvas component with viewport management, zoom/pan controls, and transform
 - Mouse wheel zoom
 - Drag to pan
 - Responsive canvas sizing
-- Selection overlays with interactive drag translation
+- Selection overlays with interactive drag translation and rotation
 
 ## Usage
 
@@ -91,4 +92,4 @@ const Cross = buildCanvasComponent<CrossProps>((vp, props) => {
 
 ## Version
 
-0.3.0
+0.4.0

@@ -43,8 +43,9 @@ const createMockViewport = (): Viewport => ({
     arc: vi.fn(),
     fill: vi.fn(),
     fillStyle: '',
-    moveTo: vi.fn(),
-    lineTo: vi.fn(),
+      closePath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
     canvas: {
       width: 800,
       height: 600,
@@ -102,7 +103,8 @@ describe('Select2D component', () => {
 
     const ctx = vp()!.ctx;
     expect(ctx.setLineDash).toHaveBeenCalledWith([6, 4]);
-    expect(ctx.strokeRect).toHaveBeenCalled();
+    expect(ctx.beginPath).toHaveBeenCalled();
+    expect(ctx.stroke).toHaveBeenCalled();
     dispose();
   });
 
@@ -158,16 +160,16 @@ describe('Select2D component', () => {
     await waitForEffects();
 
     const ctx = vp()!.ctx;
-    const calls = (ctx.strokeRect as ReturnType<typeof vi.fn>).mock.calls;
-    expect(calls.length).toBeGreaterThan(0);
-    const lastCall = calls[calls.length - 1]!;
+    const moveToCalls = (ctx.moveTo as ReturnType<typeof vi.fn>).mock.calls;
+    // First moveTo should be screen top-left corner of padded union bounds
+    expect(moveToCalls.length).toBeGreaterThan(0);
+    const firstMoveTo = moveToCalls[0]!;
 
     // With identity transform, Y is negated in screen coords.
-    // World Y range [0, 100] → screen Y range [-100, 0].
-    expect(lastCall[0]).toBe(0);
-    expect(lastCall[1]).toBe(-100);
-    expect(lastCall[2]).toBe(200);
-    expect(lastCall[3]).toBe(100);
+    // Union bounds: [0,0] to [200,100] with no padding.
+    // World corner 0 (0, 0) → screen (0, 0).
+    expect(firstMoveTo[0]).toBe(0);
+    expect(firstMoveTo[1]).toBe(0);
     dispose();
   });
 
@@ -264,6 +266,132 @@ describe('Select2D component', () => {
     emit(canvas, pointerUp, createPointerEvent('pointerup', {}));
     await waitForEffects();
 
+    dispose();
+  });
+
+  test('starts rotation drag on rotation handle hit', async () => {
+    const [vp, _setVp] = createSignal<Viewport>(createMockViewport());
+
+    const RegisterBounds = () => {
+      const selCtx = useContext(selectionContext);
+      selCtx.registerBounds('shape', {
+        minX: 0,
+        minY: 0,
+        maxX: 100,
+        maxY: 60,
+      });
+      return null;
+    };
+
+    const container = document.createElement('div');
+    const dispose = render(
+      () => (
+        <canvasContext.Provider value={contextStub(vp)}>
+          <Select2D padding={4}>
+            <RegisterBounds />
+          </Select2D>
+        </canvasContext.Provider>
+      ),
+      container,
+    );
+
+    await waitForEffects();
+
+    const canvas = vp()!.ctx.canvas;
+    const addCalls = (canvas.addEventListener as ReturnType<typeof vi.fn>)
+      .mock.calls;
+    const pointerDown = addCalls.find((c: unknown[]) =>
+      c[0] === 'pointerdown'
+    )?.[1] as (e: PointerEvent) => void;
+    const pointerMove = addCalls.find((c: unknown[]) =>
+      c[0] === 'pointermove'
+    )?.[1] as (e: PointerEvent) => void;
+
+    expect(pointerDown).toBeDefined();
+    expect(pointerMove).toBeDefined();
+
+    const setPointerCapture = vi.fn();
+    Object.defineProperty(canvas, 'setPointerCapture', {
+      value: setPointerCapture,
+    });
+
+    // Screen rect: [-4, -64] to [104, 4], rotation handle at (50, -84)
+    emit(canvas, pointerDown,
+      createPointerEvent('pointerdown', {
+        clientX: 50,
+        clientY: -84,
+        pointerId: 1,
+      }),
+    );
+    await waitForEffects();
+
+    expect(setPointerCapture).toHaveBeenCalledWith(1);
+
+    // pointermove to right: simulate dragging handle to right of center
+    emit(canvas, pointerMove,
+      createPointerEvent('pointermove', {
+        clientX: 100,
+        clientY: -84,
+      }),
+    );
+    await waitForEffects();
+
+    dispose();
+  });
+
+  test('does not start rotation drag on corner handle hit', async () => {
+    const [vp, _setVp] = createSignal<Viewport>(createMockViewport());
+
+    const RegisterBounds = () => {
+      const selCtx = useContext(selectionContext);
+      selCtx.registerBounds('shape', {
+        minX: 0,
+        minY: 0,
+        maxX: 100,
+        maxY: 60,
+      });
+      return null;
+    };
+
+    const container = document.createElement('div');
+    const dispose = render(
+      () => (
+        <canvasContext.Provider value={contextStub(vp)}>
+          <Select2D padding={4}>
+            <RegisterBounds />
+          </Select2D>
+        </canvasContext.Provider>
+      ),
+      container,
+    );
+
+    await waitForEffects();
+
+    const canvas = vp()!.ctx.canvas;
+    const addCalls = (canvas.addEventListener as ReturnType<typeof vi.fn>)
+      .mock.calls;
+    const pointerDown = addCalls.find((c: unknown[]) =>
+      c[0] === 'pointerdown'
+    )?.[1] as (e: PointerEvent) => void;
+
+    expect(pointerDown).toBeDefined();
+
+    const setPointerCapture = vi.fn();
+    Object.defineProperty(canvas, 'setPointerCapture', {
+      value: setPointerCapture,
+    });
+
+    // Hit top-left corner handle at (-4, 4)
+    emit(canvas, pointerDown,
+      createPointerEvent('pointerdown', {
+        clientX: -4,
+        clientY: 4,
+        pointerId: 1,
+      }),
+    );
+    await waitForEffects();
+
+    expect(setPointerCapture).not.toHaveBeenCalled();
     dispose();
   });
 

@@ -115,6 +115,8 @@ Implemented in 5 phases, each producing a PR.
 - `pointermove`: compute angle between handle–center vector and current pointer
 - Apply rotation delta to viewport: `compose(rotateTx, prevTransform)`
 - Composited with translation from Phase #3
+- update readme.md and version for `ts-geosolid-canvas` with new rotation
+  feature
 
 **⚠️ STOP — DO NOT proceed to Phase #5 until this PR is approved and merged.
 ⚠️**

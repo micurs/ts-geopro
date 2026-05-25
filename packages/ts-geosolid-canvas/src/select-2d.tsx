@@ -3,6 +3,7 @@ import type { Component, JSX } from "solid-js";
 import { canvasContext } from "./canvas/canvas-context.ts";
 import { selectionContext } from "./canvas/selection.ts";
 import { worldToScreenPoint } from "./canvas/utils.ts";
+import { drawCenterCrosshair, drawPointerLine, drawRotationArc } from "./canvas/drawing.ts";
 import type { BoundingBox } from "./canvas/selection.ts";
 import { compose, Transform, Vector } from "@micurs/ts-geopro";
 
@@ -27,12 +28,35 @@ const HANDLE_RADIUS = 5;
 const HANDLE_HIT_RADIUS = 7;
 const ROTATION_HANDLE_OFFSET = 20;
 
+/**
+ * Check whether a screen-space point lies inside a convex polygon.
+ * Uses the cross-product sign test: all cross products from consecutive
+ * edges to the point must have the same sign for a point to be inside.
+ *
+ * @param sx - point X (screen pixels)
+ * @param sy - point Y (screen pixels)
+ * @param corners - polygon vertices in order (screen pixel coords)
+ * @returns true if (sx, sy) is inside the convex polygon
+ */
+function pointInConvexPolygon(
+  sx: number, sy: number, corners: [number, number][],
+): boolean {
+  let pos = false;
+  let neg = false;
+  for (let i = 0; i < corners.length; i++) {
+    const j = (i + 1) % corners.length;
+    const [ax, ay] = corners[i]!;
+    const [bx, by] = corners[j]!;
+    const cross = (bx - ax) * (sy - ay) - (by - ay) * (sx - ax);
+    if (cross > 0) pos = true;
+    if (cross < 0) neg = true;
+    if (pos && neg) return false;
+  }
+  return true;
+}
+
 interface SelectionRefs {
   positions: [number, number][];
-  sMinX: number;
-  sMinY: number;
-  sMaxX: number;
-  sMaxY: number;
 }
 
 /**
@@ -65,11 +89,8 @@ function createPointerMoveHandler(
 
     setHoveredBox(
       found === -1 &&
-        sel.positions.length > 0 &&
-        sx >= sel.sMinX &&
-        sx <= sel.sMaxX &&
-        sy >= sel.sMinY &&
-        sy <= sel.sMaxY,
+        sel.positions.length >= 4 &&
+        pointInConvexPolygon(sx, sy, sel.positions.slice(0, 4) as [number, number][]),
     );
   };
 }
@@ -125,9 +146,19 @@ export const Select2D: Component<Select2DProps> = (props) => {
   const [hoveredHandle, setHoveredHandle] = createSignal(-1);
   const [dragDelta, setDragDelta] = createSignal(Vector.from(0, 0, 0));
 
+  const [rotationAngle, setRotationAngle] = createSignal(0);
+  const [isRotating, setIsRotating] = createSignal(false);
+  const [rotPointerPos, setRotPointerPos] = createSignal<[number, number] | null>(null);
+  const [rotInitAngle, setRotInitAngle] = createSignal(0);
+  const [arcDelta, setArcDelta] = createSignal(0);
+
   let dragging = false;
   let dragScreenStart: [number, number] | null = null;
   let dragBase = Vector.from(0, 0, 0);
+
+  let rotating = false;
+  let rotationBase = 0;
+  let lastMouseAngle = 0;
 
   const childViewport = createMemo(() => {
     const vp = ctx?.vp();
@@ -135,16 +166,29 @@ export const Select2D: Component<Select2DProps> = (props) => {
       return undefined;
     }
     const d = dragDelta();
-    const tx = Transform.fromTranslation(d.x, -d.y, 0);
-    return { ...vp, transform: compose(tx, vp.transform) };
+    const angle = rotationAngle();
+    const box = unionBounds();
+
+    const translateTx = Transform.fromTranslation(d.x, -d.y, 0);
+    let childTx = compose(translateTx, vp.transform);
+
+    if (angle !== 0 && box) {
+      const cx = (box.minX + box.maxX) / 2;
+      const cy = (box.minY + box.maxY) / 2;
+      childTx = compose(
+        Transform.fromTranslation(-cx, cy, 0),
+        Transform.fromRotationZ(angle),
+        Transform.fromTranslation(cx, -cy, 0),
+        translateTx,
+        vp.transform,
+      );
+    }
+
+    return { ...vp, transform: childTx };
   });
 
   const selRefs: SelectionRefs = {
     positions: [],
-    sMinX: 0,
-    sMinY: 0,
-    sMaxX: 0,
-    sMaxY: 0,
   };
 
   createEffect(() => {
@@ -153,15 +197,15 @@ export const Select2D: Component<Select2DProps> = (props) => {
     const box = unionBounds();
     const hovBox = hoveredBox();
     const hovHandle = hoveredHandle();
+    const rotatingNow = isRotating();
+    const rotPtr = rotPointerPos();
+    const initAngle = rotInitAngle();
+    const rotArcDelta = arcDelta();
 
     if (!vp) {
       return;
     }
     if (!box) {
-      selRefs.sMinX = 0;
-      selRefs.sMinY = 0;
-      selRefs.sMaxX = 0;
-      selRefs.sMaxY = 0;
       selRefs.positions = [];
       if (!untrack(() => ctx?.rAFWillClear() ?? false)) {
         ctx?.requestRedraw();
@@ -173,36 +217,55 @@ export const Select2D: Component<Select2DProps> = (props) => {
     const col = color();
     const M = vp.transform;
 
-    const corners: [number, number][] = [
+    const worldCorners: [number, number][] = [
       [box.minX - p, box.minY - p],
       [box.maxX + p, box.minY - p],
       [box.maxX + p, box.maxY + p],
       [box.minX - p, box.maxY + p],
     ];
-    let sMinX = Infinity;
-    let sMinY = Infinity;
-    let sMaxX = -Infinity;
-    let sMaxY = -Infinity;
-    for (const [wx, wy] of corners) {
-      const [sx, sy] = worldToScreenPoint(M, wx, wy);
-      sMinX = Math.min(sMinX, sx);
-      sMinY = Math.min(sMinY, sy);
-      sMaxX = Math.max(sMaxX, sx);
-      sMaxY = Math.max(sMaxY, sy);
+
+    const screenCorners = worldCorners.map(
+      ([wx, wy]) => worldToScreenPoint(M, wx, wy),
+    ) as [number, number][];
+
+    const c0 = screenCorners[3]!;
+    const c1 = screenCorners[2]!;
+
+    const topMidX = (c0[0] + c1[0]) / 2;
+    const topMidY = (c0[1] + c1[1]) / 2;
+
+    const eX = c1[0] - c0[0];
+    const eY = c1[1] - c0[1];
+    const eLen = Math.sqrt(eX * eX + eY * eY);
+
+    const sc0 = screenCorners[0]!;
+    const sc2 = screenCorners[2]!;
+    const centerX = (sc0[0] + sc2[0]) / 2;
+    const centerY = (sc0[1] + sc2[1]) / 2;
+
+    let nX: number;
+    let nY: number;
+    if (eLen < 1e-9) {
+      // Degenerate top edge: outward normal is direction from center to topMid
+      const dx = topMidX - centerX;
+      const dy = topMidY - centerY;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len < 1e-9) {
+        nX = 0;
+        nY = -1;
+      } else {
+        nX = dx / len;
+        nY = dy / len;
+      }
+    } else {
+      const outwardCW = (topMidX - centerX) * (eY / eLen) + (topMidY - centerY) * (-eX / eLen);
+      nX = outwardCW > 0 ? eY / eLen : -eY / eLen;
+      nY = outwardCW > 0 ? -eX / eLen : eX / eLen;
     }
 
-    selRefs.sMinX = sMinX;
-    selRefs.sMinY = sMinY;
-    selRefs.sMaxX = sMaxX;
-    selRefs.sMaxY = sMaxY;
-
-    const midX = (sMinX + sMaxX) / 2;
     selRefs.positions = [
-      [sMinX, sMinY],
-      [sMaxX, sMinY],
-      [sMaxX, sMaxY],
-      [sMinX, sMaxY],
-      [midX, sMinY - ROTATION_HANDLE_OFFSET],
+      screenCorners[0]!, screenCorners[1]!, screenCorners[2]!, screenCorners[3]!,
+      [topMidX + nX * ROTATION_HANDLE_OFFSET, topMidY + nY * ROTATION_HANDLE_OFFSET],
     ];
 
     vp.ctx.save();
@@ -213,13 +276,33 @@ export const Select2D: Component<Select2DProps> = (props) => {
     vp.ctx.lineWidth = hovBox ? 2 : 1;
     vp.ctx.setLineDash([6, 4]);
 
-    vp.ctx.strokeRect(sMinX, sMinY, sMaxX - sMinX, sMaxY - sMinY);
-
-    // rotation handle connector line
     vp.ctx.beginPath();
-    vp.ctx.moveTo(midX, sMinY);
-    vp.ctx.lineTo(midX, sMinY - ROTATION_HANDLE_OFFSET);
+    vp.ctx.moveTo(sc0[0], sc0[1]);
+    const sc1 = screenCorners[1]!;
+    const sc3 = screenCorners[3]!;
+    vp.ctx.lineTo(sc1[0], sc1[1]);
+    vp.ctx.lineTo(sc2[0], sc2[1]);
+    vp.ctx.lineTo(sc3[0], sc3[1]);
+    vp.ctx.closePath();
     vp.ctx.stroke();
+
+    const rotHandlePos = selRefs.positions[4]!;
+    vp.ctx.beginPath();
+    vp.ctx.moveTo(topMidX, topMidY);
+    vp.ctx.lineTo(rotHandlePos[0], rotHandlePos[1]);
+    vp.ctx.stroke();
+
+    // Center crosshair, only while rotating
+    if (rotatingNow) {
+      vp.ctx.setLineDash([]);
+      drawCenterCrosshair(vp.ctx, centerX, centerY, col);
+    }
+
+    // Line and arc from center to mouse cursor while rotating
+    if (rotatingNow && rotPtr) {
+      drawPointerLine(vp.ctx, centerX, centerY, rotPtr[0], rotPtr[1], col);
+      drawRotationArc(vp.ctx, centerX, centerY, 50, initAngle, rotArcDelta, col);
+    }
 
     vp.ctx.globalAlpha = 1;
     vp.ctx.setLineDash([]);
@@ -265,26 +348,62 @@ export const Select2D: Component<Select2DProps> = (props) => {
         const dx = sx - hx;
         const dy = sy - hy;
         if (dx * dx + dy * dy < HANDLE_HIT_RADIUS * HANDLE_HIT_RADIUS) {
+          if (i === 4) {
+            e.stopImmediatePropagation();
+            const p0 = selRefs.positions[0]!;
+            const p2 = selRefs.positions[2]!;
+            const midX = (p0[0] + p2[0]) / 2;
+            const midY = (p0[1] + p2[1]) / 2;
+            setRotInitAngle(Math.atan2(sy - midY, sx - midX));
+            lastMouseAngle = Math.atan2(sy - midY, sx - midX);
+            setArcDelta(0);
+            rotationBase = untrack(() => rotationAngle());
+            rotating = true;
+            setIsRotating(true);
+            canvas.setPointerCapture(e.pointerId);
+          }
           return;
         }
       }
 
       if (
-        selRefs.positions.length > 0 &&
-        sx >= selRefs.sMinX &&
-        sx <= selRefs.sMaxX &&
-        sy >= selRefs.sMinY &&
-        sy <= selRefs.sMaxY
+        selRefs.positions.length >= 4 &&
+        pointInConvexPolygon(sx, sy, selRefs.positions.slice(0, 4) as [number, number][])
       ) {
         e.stopImmediatePropagation();
         dragScreenStart = [sx, sy];
-        dragBase = dragDelta();
+        dragBase = untrack(() => dragDelta());
         dragging = true;
         canvas.setPointerCapture(e.pointerId);
       }
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      if (rotating) {
+        e.stopImmediatePropagation();
+        const rect = canvas.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        setRotPointerPos([sx, sy]);
+        const p0 = selRefs.positions[0]!;
+        const p2 = selRefs.positions[2]!;
+        const midX = (p0[0] + p2[0]) / 2;
+        const midY = (p0[1] + p2[1]) / 2;
+        const curAngle = Math.atan2(sy - midY, sx - midX);
+        let delta = curAngle - lastMouseAngle;
+        if (delta > Math.PI) delta -= 2 * Math.PI;
+        if (delta < -Math.PI) delta += 2 * Math.PI;
+        lastMouseAngle = curAngle;
+        setArcDelta(prev => {
+          let next = prev + delta;
+          if (next > Math.PI * 2) next -= Math.PI * 2;
+          if (next < -Math.PI * 2) next += Math.PI * 2;
+          return next;
+        });
+        setRotationAngle(rotationBase + curAngle - rotInitAngle());
+        return;
+      }
+
       if (dragging && dragScreenStart) {
         e.stopImmediatePropagation();
         const parentVp = ctx?.vp();
@@ -305,6 +424,13 @@ export const Select2D: Component<Select2DProps> = (props) => {
     };
 
     const onPointerUp = (e: PointerEvent) => {
+      if (rotating) {
+        e.stopImmediatePropagation();
+        rotating = false;
+        setIsRotating(false);
+        setRotPointerPos(null);
+        return;
+      }
       if (dragging) {
         e.stopImmediatePropagation();
         dragging = false;

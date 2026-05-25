@@ -1,40 +1,47 @@
-# Task State — Ticket #52
+# Task State — Phase 4 (Rotation Drag)
 
 ## Goal
-Add `Translate2D` SolidJS component that translates children by a 2D offset on canvas, analogous to `Rotation2D` but for translation.
+Add rotation drag to `Select2D` — drag the top-center rotation handle to rotate children around the bounding box center.
 
 ## Decisions
-- **`vector` prop over `dx`/`dy`**: Uses `Vector` from `@micurs/ts-geopro` for consistency with geo-entity types.
-- **Y-negation**: Same as `Rotation2D.center` — `vector` is in screen coords (Y-down) but `Transform.fromTranslation` operates in world/mathematical coords (Y-up).
-- **Context-provider pattern**: Follows `Rotation2D` exactly — `createMemo` for transformed viewport, `createEffect` for `requestRedraw`, passes through parent's `redrawVersion`/`requestRedraw`/`rAFWillClear`.
-- **Animated demo**: Ellipse slides horizontally back and forth between -100 and +100, direction reversals at thresholds to visually prove translation works.
+- **Rotated polygon bounding box**: replaced axis-aligned `strokeRect` with polygon drawn via `moveTo`/`lineTo`/`closePath`, so the selection frame rotates with children.
+- **Point-in-polygon hit-test**: box hover/drag detection uses `pointInConvexPolygon` instead of axis-aligned bounds.
+- **Rotation handle edge**: attached to world-maxY edge (screenCorners[3]→[2]), outward normal computed via dot product with polygon center — handle rotates with box.
+- **Rotate-before-translate compose order**: `compose(translateTx, toCenter, rotZ, fromCenter, parent)` so rotation center is unionBounds center regardless of dragDelta.
+- **Corners numbering**: screenCorners[0]=world(minX-p, minY-p) → screen bottom-left after Y-negation; screenCorners[3]=world(minX-p, maxY+p) → screen top-left.
 
 ## Changed Files
 
-### `packages/ts-geosolid-canvas/src/translate-2d.tsx`
-- New `Translate2D` component with `vector: Vector` and `children: JSX.Element` props
-- `createMemo` computes modified viewport via `compose(translateTx, vp.transform)`
-- `createEffect` calls `ctx?.requestRedraw()` when `vector` changes
-- Context provider passes `vp: translatedVp` + parent signals
+### `packages/ts-geosolid-canvas/src/select-2d.tsx`
+- Added `pointInConvexPolygon()` helper
+- Added `rotationAngle` signal, `rotating` flag, `rotInitAngle` tracking
+- `onPointerDown`: handle hit i===4 starts rotation, records screen center → pointer angle
+- `onPointerMove`: during rotation, computes angle delta → updates `rotationAngle`
+- `onPointerUp`: clears rotation mode
+- `childViewport`: composes `toCenter, rotZ, fromCenter` around `unionBounds` center, then `translateTx`
+- Draw effect: polygon (moveTo/lineTo) + connector line to rotated top edge + handles at rotated corners
+- `selRefs.positions[0-3]` = rotated screen corners, `[4]` = rotation handle above outward normal
+- Removed `sMinX`/`sMinY`/`sMaxX`/`sMaxY` from `SelectionRefs`
+- `createPointerMoveHandler` uses polygon hit-test
+- Import: added `Rotation`
 
-### `packages/ts-geosolid-canvas/src/index.ts`
-- Added export for `Translate2D` and `Translate2DProps`
+### `packages/ts-geosolid-canvas/tests/select-2d.test.tsx`
+- Added closePath to mock CanvasRenderingContext2D
+- 2 new tests: rotation starts on handle hit, rotation not started on corner handle
+- Updated existing tests: check beginPath/stroke instead of strokeRect; check moveTo for union bounds
 
-### `packages/ts-geosolid-canvas/tests/translate-2d.test.tsx`
-- New test file with 4 tests (see Tests section)
+### `packages/ts-geosolid-canvas/readme.md`
+- Updated Select2D description with rotation drag
+- Updated Features list
+- Bumped version 0.3.0 → 0.4.0
 
-### `packages/ts-geosolid-canvas/demo/main.tsx`
-- Added `Translate2D` import
-- Added `Vector` import (from `@micurs/ts-geopro`)
-- Added `tx` signal with `dir` variable for oscillation
-- Added interval driving `tx` between -100 and +100 with direction reversal
-- Added `Translate2D` wrapping an `Ellipse` inside Canvas
+### `packages/ts-geosolid-canvas/package.json`
+- Bumped version 0.3.0 → 0.4.0
 
 ## Tests
-1. **applies vector translation to viewport transform** — checks `direct(3,0)` and `direct(3,1)` match `Transform.fromTranslation(v.x, -v.y, 0)`
-2. **zero vector produces identity translation offset** — translation part remains 0
-3. **requests redraw when vector changes** — verifies `requestRedraw()` called on each `vector` change
-4. **applies Y-negation to vector** — Y=100 screen coords → translation.y = -100 world
+All 30 pass. New rotation tests:
+- **starts rotation drag on rotation handle hit** — pointerdown at rotation handle → setPointerCapture(1)
+- **does not start rotation drag on corner handle hit** — pointerdown at corner handle → no capture
 
 ## Unresolved Issues
 - None
