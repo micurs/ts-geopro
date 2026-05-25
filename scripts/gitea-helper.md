@@ -26,6 +26,9 @@ to target a PR explicitly.
 ./scripts/gitea-helper.sh list all       # All issues
 ./scripts/gitea-helper.sh list closed    # Closed issues
 
+# Show full ticket details (body, title, state)
+./scripts/gitea-helper.sh show 54
+
 # Create issue
 ./scripts/gitea-helper.sh create "Title" "Body text"
 

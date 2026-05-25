@@ -4,11 +4,10 @@ description: Create a plan file from a Gitea ticket
 
 You are in planning mode. Create a plan for ticket #$1.
 
-1. **Fetch full ticket details**: Use `curl` with the Gitea API token (from
-   `~/Library/Application\ Support/tea/config.yml`) to fetch the full issue
-   body. `tea issue show` only shows the summary — the body contains detailed
-   requirements. Read the body in full before proceeding. Use the title for the
-   plan title.
+1. **Fetch full ticket details**: Run `./scripts/gitea-helper.sh show $1` to get
+   the full issue body (title, state, description). `tea issue show` only shows
+   the summary — the body contains detailed requirements. Read the body in full
+   before proceeding. Use the title for the plan title.
 
 2. **Determine plan type**: single-phase (simple, contained change) or
    multi-phase (needs sub-tickets, multiple branches). Ask the user if the scope
@@ -65,14 +64,15 @@ step 6).
    questions about design decisions where there are trade-offs. Do not write the
    file until the user approves.
 
-6. **If multi-phase, create sub-tickets**: Use the Gitea API with the token from
-   `~/Library/Application\ Support/tea/config.yml` to create one sub-ticket per
-   phase. Include the parent ticket reference, branch name, and phase
-   description in each sub-ticket body. Map sub-ticket numbers to the plan.
+6. **If multi-phase, create sub-tickets**: Use `./scripts/gitea-helper.sh create`
+   to create one sub-ticket per phase. Include the parent ticket reference,
+   branch name, and phase description in each sub-ticket body. Map sub-ticket
+   numbers to the plan.
 
 7. **Write approved plan** to `.plans/$1-<short-title>.md`.
 
-8. **Post approved plan** as comment to the main ticket.
+8. **Post approved plan** as comment to the main ticket using
+   `./scripts/gitea-helper.sh comment`.
 
 **General guidelines:**
 

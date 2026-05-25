@@ -2,6 +2,7 @@
 # Gitea API Helper Script
 # Usage examples:
 #   ./scripts/gitea-helper.sh list                         # List open issues
+#   ./scripts/gitea-helper.sh show 54                      # Show full ticket #54 (body, title, state)
 #   ./scripts/gitea-helper.sh create "Title" "Body"        # Create new issue
 #   ./scripts/gitea-helper.sh comment 16 "Message"         # Add comment to issue #16
 #   ./scripts/gitea-helper.sh close 16                     # Close issue #16
@@ -22,6 +23,28 @@ if [ -z "$GITEA_TOKEN" ]; then
 fi
 
 case "$1" in
+  show)
+    ISSUE_NUM="$2"
+    if [ -z "$ISSUE_NUM" ]; then
+      echo "Usage: $0 show <issue_number>"
+      exit 1
+    fi
+    curl -s -H "Authorization: token $GITEA_TOKEN" \
+      "$GITEA_URL/api/v1/repos/$REPO/issues/$ISSUE_NUM" | \
+      python3 -c "
+import sys, json
+r = json.load(sys.stdin)
+print('#' + str(r['number']) + ': [' + r['state'] + '] ' + r['title'])
+print()
+print(r['body'])
+print()
+labels = ', '.join([l['name'] for l in r.get('labels', [])])
+if labels:
+    print('Labels:', labels)
+print('URL:', r.get('html_url', ''))
+"
+    ;;
+
   list)
     STATE="${2:-open}"
     curl -s -H "Authorization: token $GITEA_TOKEN" \
@@ -94,10 +117,11 @@ case "$1" in
 
   *)
     echo "Gitea API Helper"
-    echo "Usage: $0 {list|create|comment|close|reopen|pr} [args...]"
+    echo "Usage: $0 {list|show|create|comment|close|reopen|pr} [args...]"
     echo ""
     echo "Commands:"
     echo "  list [state]                      List issues (default: open)"
+    echo "  show <num>                        Show full ticket details (body, title, state)"
     echo "  create <title> <body>             Create new issue"
     echo "  comment <num> <text>              Add comment to issue"
     echo "  close <num>                       Close issue"
