@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, useContext } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup, untrack, useContext } from "solid-js";
 import type { Component, JSX } from "solid-js";
 import { canvasContext } from "./canvas/canvas-context.ts";
 import { selectionContext } from "./canvas/selection.ts";
@@ -9,26 +9,70 @@ export interface Select2DProps {
   children: JSX.Element;
   /** Selection dashed border color (default: '#00aaff') */
   color?: string;
+  /** Handle fill color (default: '#ffffff') */
+  handleColor?: string;
+  /** Handle fill color when hovered (default: '#ffdd00') */
+  handleHighlightColor?: string;
   /** Padding around union bounds in world units (default: 6) */
   padding?: number;
 }
 
+const DEFAULT_COLOR = "#00aaff";
+const DEFAULT_HANDLE_COLOR = "#ffffff";
+const DEFAULT_HANDLE_HIGHLIGHT_COLOR = "#ffdd00";
+const DEFAULT_PADDING = 6;
+
+const HANDLE_RADIUS = 5;
+const HANDLE_HIT_RADIUS = 7;
+const ROTATION_HANDLE_OFFSET = 20;
+
+interface SelectionRefs {
+  positions: [number, number][];
+  sMinX: number;
+  sMinY: number;
+  sMaxX: number;
+  sMaxY: number;
+}
+
 /**
- * Select2D wraps children and draws a dashed bounding box around their
- * registered world-space bounds. Each child with an `id` prop can register
- * its bounds via `useShapeBoundsRegistration`.
- *
- * Note: bounds are registered in local coordinates. Transforms applied by
- * ancestor `Rotation2D` / `Translate2D` components are not yet reflected
- * in the selection rectangle (see #60).
- *
- * @example
- * ```tsx
- * <Select2D padding={2} color="#ff0000">
- *   <Ellipse id="e1" center={Point.from(0, 0, 0)} width={100} height={60} />
- * </Select2D>
- * ```
+ * Creates a pointer move handler for hit-testing selection handles and box.
+ * Caches bounds and handle positions via the `sel` ref object, updated each
+ * frame by the draw effect.
  */
+function createPointerMoveHandler(
+  sel: SelectionRefs,
+  setHoveredHandle: (v: number) => void,
+  setHoveredBox: (v: boolean) => void,
+): (e: PointerEvent) => void {
+  return (e: PointerEvent) => {
+    const canvas = e.currentTarget as HTMLCanvasElement;
+    const rect = canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+
+    let found = -1;
+    for (let i = 0; i < sel.positions.length; i++) {
+      const [hx, hy] = sel.positions[i]!;
+      const dx = sx - hx;
+      const dy = sy - hy;
+      if (dx * dx + dy * dy < HANDLE_HIT_RADIUS * HANDLE_HIT_RADIUS) {
+        found = i;
+        break;
+      }
+    }
+    setHoveredHandle(found);
+
+    setHoveredBox(
+      found === -1 &&
+        sel.positions.length > 0 &&
+        sx >= sel.sMinX &&
+        sx <= sel.sMaxX &&
+        sy >= sel.sMinY &&
+        sy <= sel.sMaxY,
+    );
+  };
+}
+
 export const Select2D: Component<Select2DProps> = (props) => {
   const ctx = useContext(canvasContext);
   const [boundsMap, setBoundsMap] = createSignal<Map<string, BoundingBox>>(
@@ -71,15 +115,41 @@ export const Select2D: Component<Select2DProps> = (props) => {
     return { minX, minY, maxX, maxY };
   });
 
-  const padding = () => props.padding ?? 6;
-  const color = () => props.color ?? "#00aaff";
+  const padding = () => props.padding ?? DEFAULT_PADDING;
+  const color = () => props.color ?? DEFAULT_COLOR;
+  const handleColor = () => props.handleColor ?? DEFAULT_HANDLE_COLOR;
+  const handleHighlightColor = () => props.handleHighlightColor ?? DEFAULT_HANDLE_HIGHLIGHT_COLOR;
+
+  const [hoveredBox, setHoveredBox] = createSignal(false);
+  const [hoveredHandle, setHoveredHandle] = createSignal(-1);
+
+  const selRefs: SelectionRefs = {
+    positions: [],
+    sMinX: 0,
+    sMinY: 0,
+    sMaxX: 0,
+    sMaxY: 0,
+  };
 
   createEffect(() => {
     ctx?.redrawVersion();
     const vp = ctx?.vp();
     const box = unionBounds();
+    const hovBox = hoveredBox();
+    const hovHandle = hoveredHandle();
 
-    if (!vp || !box) {
+    if (!vp) {
+      return;
+    }
+    if (!box) {
+      selRefs.sMinX = 0;
+      selRefs.sMinY = 0;
+      selRefs.sMaxX = 0;
+      selRefs.sMaxY = 0;
+      selRefs.positions = [];
+      if (!untrack(() => ctx?.rAFWillClear() ?? false)) {
+        ctx?.requestRedraw();
+      }
       return;
     }
 
@@ -105,16 +175,81 @@ export const Select2D: Component<Select2DProps> = (props) => {
       sMaxY = Math.max(sMaxY, sy);
     }
 
+    selRefs.sMinX = sMinX;
+    selRefs.sMinY = sMinY;
+    selRefs.sMaxX = sMaxX;
+    selRefs.sMaxY = sMaxY;
+
+    const midX = (sMinX + sMaxX) / 2;
+    selRefs.positions = [
+      [sMinX, sMinY],
+      [sMaxX, sMinY],
+      [sMaxX, sMaxY],
+      [sMinX, sMaxY],
+      [midX, sMinY - ROTATION_HANDLE_OFFSET],
+    ];
+
     vp.ctx.save();
     vp.ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    vp.ctx.globalAlpha = hovBox ? 1 : 0.7;
     vp.ctx.strokeStyle = col;
-    vp.ctx.lineWidth = 1;
+    vp.ctx.lineWidth = hovBox ? 2 : 1;
     vp.ctx.setLineDash([6, 4]);
 
     vp.ctx.strokeRect(sMinX, sMinY, sMaxX - sMinX, sMaxY - sMinY);
 
+    // rotation handle connector line
+    vp.ctx.beginPath();
+    vp.ctx.moveTo(midX, sMinY);
+    vp.ctx.lineTo(midX, sMinY - ROTATION_HANDLE_OFFSET);
+    vp.ctx.stroke();
+
+    vp.ctx.globalAlpha = 1;
     vp.ctx.setLineDash([]);
+
+    selRefs.positions.forEach((pos, i) => {
+      const [hx, hy] = pos;
+      vp.ctx.beginPath();
+      vp.ctx.arc(hx, hy, HANDLE_RADIUS, 0, 2 * Math.PI);
+      vp.ctx.fillStyle = i === hovHandle ? handleHighlightColor() : handleColor();
+      vp.ctx.strokeStyle = "#333333";
+      vp.ctx.lineWidth = 1.5;
+      vp.ctx.fill();
+      vp.ctx.stroke();
+    });
+
     vp.ctx.restore();
+
+    if (!untrack(() => ctx?.rAFWillClear() ?? false)) {
+      ctx?.requestRedraw();
+    }
+  });
+
+  createEffect(() => {
+    const vp = ctx?.vp();
+    const canvas = vp?.ctx.canvas;
+    if (!canvas) {
+      return;
+    }
+
+    const onPointerMove = createPointerMoveHandler(
+      selRefs,
+      setHoveredHandle,
+      setHoveredBox,
+    );
+
+    const onPointerLeave = () => {
+      setHoveredBox(false);
+      setHoveredHandle(-1);
+    };
+
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerleave", onPointerLeave);
+    onCleanup(() => {
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerleave", onPointerLeave);
+    });
   });
 
   const ctxValue = {

@@ -73,7 +73,12 @@ const App = () => {
         />
       </Select2D>
 
-      <Select2D padding={1} color="red">
+      <Select2D
+        padding={1}
+        color="red"
+        handleColor="red"
+        handleHighlightColor="yellow"
+      >
         <Rotation2D angle={angle1()} center={Point.from(90, 50, 0)}>
           <Line
             id="demo-line"
