@@ -94,6 +94,8 @@ Implemented in 5 phases, each producing a PR.
   `compose(translateTx, vp.transform)` — same pattern as `Translate2D`
 - `pointerup`: end drag, commit translation
 - Translate delta tracked as internal signal
+- Update readme.md for ts-geosolid-canvas with new Select2D description and
+  usage example.
 - Update version of `ts-geosolid-canvas`.
 
 **⚠️ STOP — DO NOT proceed to Phase #4 until this PR is approved and merged.
