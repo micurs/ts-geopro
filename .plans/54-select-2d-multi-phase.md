@@ -132,6 +132,13 @@ Implemented in 5 phases, each producing a PR.
 **Changes**:
 
 - `pointerdown` on corner handle: start scale drag
-- `pointermove`: compute scale factor from center–handle distance change
+- `pointermove`: compute scale factor from center–handle distance change. The
+  scale is always relative to the center point of the bounding box.
 - Different corners scale asymmetrically (x, y, or both)
 - Apply scale: `compose(scaleTx, rotateTx, translateTx, vp.transform)`
+- With Shift key: uniform scale (same factor for x and y)
+- update readme.md and version for `ts-geosolid-canvas` with new rotation
+  feature
+
+**⚠️ STOP — DO NOT proceed to Phase #5 until this PR is approved and merged.
+⚠️**
