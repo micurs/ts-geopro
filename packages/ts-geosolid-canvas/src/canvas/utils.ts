@@ -123,3 +123,25 @@ export const mousePanObserver = (
 export const getScaledWidth = (width: number, scaleFactor: number) => {
   return width / Math.max(1.0, scaleFactor);
 };
+
+/**
+ * Project a world-space point to screen-space using a 2D affine transform.
+ * The transform matrix elements follow the DOMMatrix convention:
+ *   matrix(a, b, c, d, e, f) = [a c e; b d f; 0 0 1]
+ * Y-axis is negated to convert from screen coords (Y-down) to world coords (Y-up).
+ * @param M - The 4x4 transform (only 2D affine components used)
+ * @param wx - World-space X coordinate
+ * @param wy - World-space Y coordinate
+ * @returns [screenX, screenY] tuple
+ */
+export const worldToScreenPoint = (
+  M: Transform,
+  wx: number,
+  wy: number,
+): [number, number] => {
+  const m = M.directMatrix;
+  return [
+    m[0] * wx + m[1] * wy + m[12],
+    -m[4] * wx - m[5] * wy + m[13],
+  ];
+};

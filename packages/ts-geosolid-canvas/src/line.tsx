@@ -2,6 +2,8 @@ import { Vector, UnitVector, Frame } from '@micurs/ts-geopro';
 import type { Point } from '@micurs/ts-geopro';
 import { getScaledWidth } from './canvas/utils.ts';
 import { buildCanvasComponent } from './build-canvas-component.tsx';
+import { useShapeBoundsRegistration } from './canvas/selection.ts';
+import type { DrawableProps } from './types.ts';
 
 import type { Component } from 'solid-js';
 import type { Viewport } from './canvas/types.ts';
@@ -9,7 +11,7 @@ import type { Viewport } from './canvas/types.ts';
 /**
  * Properties for the Line component
  */
-export interface LineProps {
+export interface LineProps extends DrawableProps {
   /** Starting point of the line */
   from: Point;
   /** Ending point of the line */
@@ -184,4 +186,14 @@ export const drawLine = (vp: Viewport, line: LineProps) => {
  * />
  * ```
  */
-export const Line: Component<LineProps> = buildCanvasComponent<LineProps>(drawLine);
+const LineBase = buildCanvasComponent<LineProps>(drawLine);
+
+export const Line: Component<LineProps> = (props) => {
+  useShapeBoundsRegistration(props.id, () => ({
+    minX: Math.min(props.from.x, props.to.x),
+    minY: Math.min(props.from.y, props.to.y),
+    maxX: Math.max(props.from.x, props.to.x),
+    maxY: Math.max(props.from.y, props.to.y),
+  }));
+  return LineBase(props);
+};

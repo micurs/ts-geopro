@@ -7,6 +7,7 @@ import {
   PerfectGrid,
   Rectangle,
   Rotation2D,
+  Select2D,
   Translate2D,
 } from "../src/index.ts";
 import { Point, Vector } from "@micurs/ts-geopro";
@@ -53,21 +54,44 @@ const App = () => {
         steps={10}
       />
 
-      <Translate2D vector={Vector.from(0, tx(), 0)}>
-        <Line
-          from={Point.from(-100, 50, 0)}
-          to={Point.from(100, -50, 0)}
-          color="#00ff00"
-          width={1}
-          end="arrow"
-          endSize={3}
-          endStyle="filled"
+      <Select2D padding={1} color="#fff0ff">
+        <Ellipse
+          id="demo-ellipse"
+          center={Point.from(-80, -80, 0)}
+          width={120}
+          height={60}
+          color="#ff6600"
+          strokeWidth={2}
         />
-      </Translate2D>
+        <Rectangle
+          id="demo-rect"
+          center={Point.from(25, 40, 0)}
+          width={60}
+          height={40}
+          color="#2266ff"
+          strokeWidth={2}
+        />
+      </Select2D>
+
+      <Select2D padding={1} color="red">
+        <Rotation2D angle={angle1()} center={Point.from(90, 50, 0)}>
+          <Line
+            id="demo-line"
+            from={Point.from(90, 50, 0)}
+            to={Point.from(140, -50, 0)}
+            color="#00ff00"
+            width={1}
+            end="arrow"
+            endSize={3}
+            endStyle="filled"
+          />
+        </Rotation2D>
+      </Select2D>
 
       {/* Line with empty arrows at both ends */}
       <Translate2D vector={Vector.from(tx(), 0, 0)}>
         <Line
+          id="demo-line-translate"
           from={Point.from(-150, -50, 0)}
           to={Point.from(-150, 100, 0)}
           color="#ff6600"
@@ -83,6 +107,7 @@ const App = () => {
       {/* Line with circle at start and arrow at end */}
       <Rotation2D angle={angle1()} center={Point.from(-50, 150, 0)}>
         <Line
+          id="demo-line-rotate"
           from={Point.from(-50, 150, 0)}
           to={Point.from(50, 150, 0)}
           color="#20f0ff"
@@ -96,11 +121,11 @@ const App = () => {
           startColor="#ff2020"
         />
       </Rotation2D>
-
       {/* Rotated group - ellipse continuously rotating around origin */}
       <Translate2D vector={Vector.from(tx(), -tx(), 0)}>
         <Rotation2D angle={angle1()} center={Point.from(20, 40, 0)}>
           <Ellipse
+            id="demo-ellipse-transform"
             center={Point.from(20, 40, 0)}
             width={100}
             height={40}
@@ -113,6 +138,7 @@ const App = () => {
       {/* Rotated group with custom center - rectangle oscillating around its corner */}
       <Rotation2D angle={angle2()} center={Point.from(-50, 150, 0)}>
         <Rectangle
+          id="demo-rect-rotate"
           center={Point.from(-50, 150, 0)}
           width={100}
           height={100}

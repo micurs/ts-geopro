@@ -28,6 +28,7 @@ const App: Component = () => {
         steps={10}
       />
       <Line
+        id="quad-red"
         from={Point.from(-50, 50, 0)}
         to={Point.from(50, -50, 0)}
         color="red"
@@ -36,6 +37,7 @@ const App: Component = () => {
         width={0.1}
       />
       <Line
+        id="quad-yellow"
         from={Point.from(50, 50, 0)}
         to={Point.from(-50, -50, 0)}
         color="yellow"
@@ -44,6 +46,7 @@ const App: Component = () => {
         width={1}
       />
       <Rectangle
+        id="quad-rect-bg"
         center={Point.from(35, 130, 0)}
         width={190}
         height={100}
@@ -52,6 +55,7 @@ const App: Component = () => {
         fill="rgba(200, 200, 200, 0.4)"
       />
       <Ellipse
+        id="quad-ellipse"
         center={Point.from(0, -30, 0)}
         width={50}
         height={35}
@@ -61,6 +65,7 @@ const App: Component = () => {
       />
       <Rotation2D angle={rot()} center={Point.from(50, -30, 0)}>
         <Rectangle
+          id="quad-rect-rot"
           center={Point.from(50, -30, 0)}
           width={60}
           height={50}

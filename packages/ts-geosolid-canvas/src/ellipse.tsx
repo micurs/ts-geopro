@@ -3,8 +3,10 @@ import type { Viewport } from './canvas/types.ts';
 import type { Point } from '@micurs/ts-geopro';
 import { getScaledWidth } from './canvas/utils.ts';
 import { buildCanvasComponent } from './build-canvas-component.tsx';
+import { useShapeBoundsRegistration } from './canvas/selection.ts';
+import type { DrawableProps } from './types.ts';
 
-export interface EllipseProps {
+export interface EllipseProps extends DrawableProps {
   center: Point;
   width: number;
   height: number;
@@ -13,6 +15,11 @@ export interface EllipseProps {
   fill?: string;
 }
 
+/**
+ * Draw an ellipse on the canvas viewport
+ * @param vp - The viewport context with canvas and scale information
+ * @param ellipse - Ellipse properties (center, dimensions, style)
+ */
 export const drawEllipse = (vp: Viewport, ellipse: EllipseProps) => {
   const { ctx, scaleFactor } = vp;
   ctx.strokeStyle = ellipse.color || 'black';
@@ -36,5 +43,29 @@ export const drawEllipse = (vp: Viewport, ellipse: EllipseProps) => {
   ctx.stroke();
 };
 
-export const Ellipse: Component<EllipseProps> =
-  buildCanvasComponent<EllipseProps>(drawEllipse);
+const EllipseBase = buildCanvasComponent<EllipseProps>(drawEllipse);
+
+/**
+ * SolidJS component that renders an ellipse on the canvas
+ *
+ * @example
+ * ```tsx
+ * <Ellipse
+ *   id="my-ellipse"
+ *   center={Point.from(0, 0, 0)}
+ *   width={100}
+ *   height={60}
+ *   color="#ff6600"
+ *   strokeWidth={2}
+ * />
+ * ```
+ */
+export const Ellipse: Component<EllipseProps> = (props) => {
+  useShapeBoundsRegistration(props.id, () => ({
+    minX: props.center.x - props.width / 2,
+    minY: props.center.y - props.height / 2,
+    maxX: props.center.x + props.width / 2,
+    maxY: props.center.y + props.height / 2,
+  }));
+  return EllipseBase(props);
+};

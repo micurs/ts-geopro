@@ -31,6 +31,7 @@ describe("Line component", () => {
   test("drawLine renders basic line without arrows", () => {
     const vp = createMockViewport();
     const lineProps = {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
       color: "#ff0000",
@@ -49,6 +50,7 @@ describe("Line component", () => {
   test("drawLine with end arrow draws arrowhead", () => {
     const vp = createMockViewport();
     const lineProps = {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
       color: "#00ff00",
@@ -71,6 +73,7 @@ describe("Line component", () => {
   test("drawLine with start arrow draws arrowhead at start", () => {
     const vp = createMockViewport();
     const lineProps = {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
       start: "arrow" as const,
@@ -86,6 +89,7 @@ describe("Line component", () => {
   test("drawLine with filled arrow uses fill", () => {
     const vp = createMockViewport();
     const lineProps = {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
       end: "arrow" as const,
@@ -113,6 +117,7 @@ describe("Line component", () => {
     });
 
     const lineProps = {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
       color: "#ff0000",
@@ -131,6 +136,7 @@ describe("Line component", () => {
   test("drawLine with both arrows draws at both ends", () => {
     const vp = createMockViewport();
     const lineProps = {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
       start: "arrow" as const,
@@ -148,6 +154,7 @@ describe("Line component", () => {
   test("drawLine defaults work correctly", () => {
     const vp = createMockViewport();
     const lineProps = {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
     };
@@ -161,15 +168,13 @@ describe("Line component", () => {
   test("drawLine with circle end cap draws circle", () => {
     const vp = createMockViewport();
     const lineProps = {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
       end: "circle" as const,
       endSize: 6,
       endStyle: "filled" as const,
     };
-
-    // Add arc method to mock ctx
-    vp.ctx.arc = vi.fn();
 
     drawLine(vp, lineProps);
 
@@ -180,6 +185,7 @@ describe("Line component", () => {
   test("drawLine with circle at start and arrow at end", () => {
     const vp = createMockViewport();
     const lineProps = {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 100, 0),
       start: "circle" as const,
@@ -189,9 +195,6 @@ describe("Line component", () => {
       startStyle: "filled" as const,
       endStyle: "empty" as const,
     };
-
-    // Add arc method to mock ctx
-    vp.ctx.arc = vi.fn();
 
     drawLine(vp, lineProps);
 
@@ -209,6 +212,7 @@ describe("Line component", () => {
       vp.ctx.lineTo = vi.fn((x: number, y: number) => calls.push({ type: "lineTo", args: [x, y] }));
 
       drawLine(vp, {
+        id: "test",
         from: Point.from(0, 0, 0),
         to: Point.from(100, 0, 0),
         end: "arrow",
@@ -233,6 +237,7 @@ describe("Line component", () => {
       vp.ctx.arc = vi.fn((_x: number, _y: number, r: number) => { capturedRadius = r; });
 
       drawLine(vp, {
+        id: "test",
         from: Point.from(0, 0, 0),
         to: Point.from(100, 0, 0),
         end: "circle",
@@ -254,6 +259,7 @@ describe("Line component", () => {
     const vp05 = createMockViewport();
     vp05.scaleFactor = 0.5;
     drawLine(vp05, {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 0, 0),
       width: 2,
@@ -264,6 +270,7 @@ describe("Line component", () => {
     const vp2 = createMockViewport();
     vp2.scaleFactor = 2;
     drawLine(vp2, {
+      id: "test",
       from: Point.from(0, 0, 0),
       to: Point.from(100, 0, 0),
       width: 2,

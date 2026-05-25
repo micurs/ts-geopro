@@ -74,6 +74,10 @@ step 6).
 8. **Post approved plan** as comment to the main ticket using
    `./scripts/gitea-helper.sh comment`.
 
+9. **Before any implementation**: Switch to the phase branch with
+   `git checkout -b <branch-name>`. Never create files or modify code while on
+   `main` or without the correct phase branch checked out.
+
 **General guidelines:**
 
 - Branch naming: `micurs/<ticket#>-<short-name>` per repo convention. For
