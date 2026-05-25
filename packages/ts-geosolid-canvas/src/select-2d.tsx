@@ -4,6 +4,7 @@ import { canvasContext } from "./canvas/canvas-context.ts";
 import { selectionContext } from "./canvas/selection.ts";
 import { worldToScreenPoint } from "./canvas/utils.ts";
 import type { BoundingBox } from "./canvas/selection.ts";
+import { compose, Transform, Vector } from "@micurs/ts-geopro";
 
 export interface Select2DProps {
   children: JSX.Element;
@@ -122,6 +123,21 @@ export const Select2D: Component<Select2DProps> = (props) => {
 
   const [hoveredBox, setHoveredBox] = createSignal(false);
   const [hoveredHandle, setHoveredHandle] = createSignal(-1);
+  const [dragDelta, setDragDelta] = createSignal(Vector.from(0, 0, 0));
+
+  let dragging = false;
+  let dragScreenStart: [number, number] | null = null;
+  let dragBase = Vector.from(0, 0, 0);
+
+  const childViewport = createMemo(() => {
+    const vp = ctx?.vp();
+    if (!vp) {
+      return undefined;
+    }
+    const d = dragDelta();
+    const tx = Transform.fromTranslation(d.x, -d.y, 0);
+    return { ...vp, transform: compose(tx, vp.transform) };
+  });
 
   const selRefs: SelectionRefs = {
     positions: [],
@@ -133,7 +149,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
 
   createEffect(() => {
     ctx?.redrawVersion();
-    const vp = ctx?.vp();
+    const vp = childViewport();
     const box = unionBounds();
     const hovBox = hoveredBox();
     const hovHandle = hoveredHandle();
@@ -227,33 +243,94 @@ export const Select2D: Component<Select2DProps> = (props) => {
   });
 
   createEffect(() => {
-    const vp = ctx?.vp();
+    const vp = childViewport();
     const canvas = vp?.ctx.canvas;
     if (!canvas) {
       return;
     }
 
-    const onPointerMove = createPointerMoveHandler(
+    const hoverHandler = createPointerMoveHandler(
       selRefs,
       setHoveredHandle,
       setHoveredBox,
     );
+
+    const onPointerDown = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+
+      for (let i = 0; i < selRefs.positions.length; i++) {
+        const [hx, hy] = selRefs.positions[i]!;
+        const dx = sx - hx;
+        const dy = sy - hy;
+        if (dx * dx + dy * dy < HANDLE_HIT_RADIUS * HANDLE_HIT_RADIUS) {
+          return;
+        }
+      }
+
+      if (
+        selRefs.positions.length > 0 &&
+        sx >= selRefs.sMinX &&
+        sx <= selRefs.sMaxX &&
+        sy >= selRefs.sMinY &&
+        sy <= selRefs.sMaxY
+      ) {
+        e.stopImmediatePropagation();
+        dragScreenStart = [sx, sy];
+        dragBase = dragDelta();
+        dragging = true;
+        canvas.setPointerCapture(e.pointerId);
+      }
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (dragging && dragScreenStart) {
+        e.stopImmediatePropagation();
+        const parentVp = ctx?.vp();
+        if (parentVp) {
+          const rect = canvas.getBoundingClientRect();
+          const sx = e.clientX - rect.left;
+          const sy = e.clientY - rect.top;
+          const sf = parentVp.scaleFactor;
+          const worldDx = (sx - dragScreenStart[0]) * sf;
+          const worldDy = -(sy - dragScreenStart[1]) * sf;
+          setDragDelta(
+            Vector.from(dragBase.x + worldDx, dragBase.y + worldDy, 0),
+          );
+        }
+        return;
+      }
+      hoverHandler(e);
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (dragging) {
+        e.stopImmediatePropagation();
+        dragging = false;
+        dragScreenStart = null;
+      }
+    };
 
     const onPointerLeave = () => {
       setHoveredBox(false);
       setHoveredHandle(-1);
     };
 
-    canvas.addEventListener("pointermove", onPointerMove);
-    canvas.addEventListener("pointerleave", onPointerLeave);
+    canvas.addEventListener("pointerdown", onPointerDown, { capture: true });
+    canvas.addEventListener("pointermove", onPointerMove, { capture: true });
+    canvas.addEventListener("pointerup", onPointerUp, { capture: true });
+    canvas.addEventListener("pointerleave", onPointerLeave, { capture: true });
     onCleanup(() => {
-      canvas.removeEventListener("pointermove", onPointerMove);
-      canvas.removeEventListener("pointerleave", onPointerLeave);
+      canvas.removeEventListener("pointerdown", onPointerDown, { capture: true });
+      canvas.removeEventListener("pointermove", onPointerMove, { capture: true });
+      canvas.removeEventListener("pointerup", onPointerUp, { capture: true });
+      canvas.removeEventListener("pointerleave", onPointerLeave, { capture: true });
     });
   });
 
   const ctxValue = {
-    vp: ctx?.vp ?? (() => undefined),
+    vp: childViewport,
     redrawVersion: ctx?.redrawVersion ?? (() => 0),
     requestRedraw: ctx?.requestRedraw ?? (() => {}),
     rAFWillClear: ctx?.rAFWillClear ?? (() => false),

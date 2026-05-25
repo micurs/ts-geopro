@@ -8,6 +8,26 @@ import { canvasContext } from '../src/canvas/canvas-context.ts';
 import { selectionContext } from '../src/canvas/selection.ts';
 import type { Viewport } from '../src/canvas/types.ts';
 
+if (typeof PointerEvent === 'undefined') {
+  class PointerEventPolyfill extends MouseEvent {
+    pointerId: number;
+    constructor(type: string, init: PointerEventInit = {}) {
+      super(type, init);
+      this.pointerId = init.pointerId ?? 0;
+    }
+  }
+  (globalThis as Record<string, unknown>).PointerEvent = PointerEventPolyfill;
+}
+
+function createPointerEvent(type: string, init: Partial<PointerEventInit> = {}): PointerEvent {
+  return new PointerEvent(type, { bubbles: true, cancelable: true, ...init });
+}
+
+function emit(canvas: HTMLCanvasElement, handler: (e: PointerEvent) => void, event: PointerEvent): void {
+  Object.defineProperty(event, 'currentTarget', { value: canvas });
+  handler(event);
+}
+
 const createMockViewport = (): Viewport => ({
   ctx: {
     save: vi.fn(),
@@ -30,6 +50,7 @@ const createMockViewport = (): Viewport => ({
       height: 600,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
+      getBoundingClientRect: () => ({ left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600 }),
     },
   } as unknown as CanvasRenderingContext2D,
   scaleFactor: 1,
@@ -150,33 +171,158 @@ describe('Select2D component', () => {
     dispose();
   });
 
-  test('passes through canvas context to children', () => {
+  test('starts drag on pointerdown inside box', async () => {
     const [vp, _setVp] = createSignal<Viewport>(createMockViewport());
-    const capturedVp: Viewport[] = [];
 
-    const Child = () => {
-      const ctx = useContext(canvasContext);
-      const current = ctx?.vp();
-      if (current) {
-        capturedVp.push(current);
-      }
-      return <div />;
+    const RegisterBounds = () => {
+      const selCtx = useContext(selectionContext);
+      selCtx.registerBounds('shape', {
+        minX: 0,
+        minY: 0,
+        maxX: 100,
+        maxY: 60,
+      });
+      return null;
     };
 
     const container = document.createElement('div');
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D>
-            <Child />
+          <Select2D padding={4}>
+            <RegisterBounds />
           </Select2D>
         </canvasContext.Provider>
       ),
       container,
     );
 
-    expect(capturedVp.length).toBeGreaterThan(0);
-    expect(capturedVp[0]!.transform.isIdentity).toBe(true);
+    await waitForEffects();
+
+    const canvas = vp()!.ctx.canvas;
+    const addCalls = (canvas.addEventListener as ReturnType<typeof vi.fn>)
+      .mock.calls;
+
+    const pointerDown = addCalls.find((c: unknown[]) =>
+      c[0] === 'pointerdown'
+    )?.[1] as (e: PointerEvent) => void;
+    const pointerMove = addCalls.find((c: unknown[]) =>
+      c[0] === 'pointermove'
+    )?.[1] as (e: PointerEvent) => void;
+    const pointerUp = addCalls.find((c: unknown[]) =>
+      c[0] === 'pointerup'
+    )?.[1] as (e: PointerEvent) => void;
+
+    expect(pointerDown).toBeDefined();
+    expect(pointerMove).toBeDefined();
+    expect(pointerUp).toBeDefined();
+
+    const setPointerCapture = vi.fn();
+    Object.defineProperty(canvas, 'setPointerCapture', {
+      value: setPointerCapture,
+    });
+
+    // Draw effect runs during rendering, populating selRefs with
+    // shape bounds → screen rect [-4, -64] to [104, 4].
+    // Direct pointerdown inside box should start drag without prior hover.
+    emit(canvas, pointerDown,
+      createPointerEvent('pointerdown', {
+        clientX: 50,
+        clientY: 0,
+        pointerId: 1,
+      }),
+    );
+    await waitForEffects();
+
+    expect(setPointerCapture).toHaveBeenCalledWith(1);
+
+    // pointermove during drag
+    emit(canvas, pointerMove,
+      createPointerEvent('pointermove', {
+        clientX: 100,
+        clientY: 0,
+      }),
+    );
+    await waitForEffects();
+
+    // pointerup ends drag
+    emit(canvas, pointerUp, createPointerEvent('pointerup', {}));
+    await waitForEffects();
+
+    // dragDelta persists, verify re-drag works
+    emit(canvas, pointerDown,
+      createPointerEvent('pointerdown', {
+        clientX: 60,
+        clientY: 0,
+        pointerId: 2,
+      }),
+    );
+    await waitForEffects();
+
+    expect(setPointerCapture).toHaveBeenCalledWith(2);
+
+    emit(canvas, pointerUp, createPointerEvent('pointerup', {}));
+    await waitForEffects();
+
+    dispose();
+  });
+
+  test('does not start drag on handle hit', async () => {
+    const [vp, _setVp] = createSignal<Viewport>(createMockViewport());
+
+    const RegisterBounds = () => {
+      const selCtx = useContext(selectionContext);
+      selCtx.registerBounds('shape', {
+        minX: 0,
+        minY: 0,
+        maxX: 100,
+        maxY: 60,
+      });
+      return null;
+    };
+
+    const container = document.createElement('div');
+    const dispose = render(
+      () => (
+        <canvasContext.Provider value={contextStub(vp)}>
+          <Select2D padding={4}>
+            <RegisterBounds />
+          </Select2D>
+        </canvasContext.Provider>
+      ),
+      container,
+    );
+
+    await waitForEffects();
+
+    const canvas = vp()!.ctx.canvas;
+    const addCalls = (canvas.addEventListener as ReturnType<typeof vi.fn>)
+      .mock.calls;
+    const pointerDown = addCalls.find((c: unknown[]) =>
+      c[0] === 'pointerdown'
+    )?.[1] as (e: PointerEvent) => void;
+
+    const setPointerCapture = vi.fn();
+    Object.defineProperty(canvas, 'setPointerCapture', {
+      value: setPointerCapture,
+    });
+
+    const pointerMove = addCalls.find((c: unknown[]) =>
+      c[0] === 'pointermove'
+    )?.[1] as (e: PointerEvent) => void;
+    emit(canvas, pointerMove, createPointerEvent('pointermove'));
+    await waitForEffects();
+
+    emit(canvas, pointerDown,
+      createPointerEvent('pointerdown', {
+        clientX: 50,
+        clientY: 30,
+        pointerId: 1,
+      }),
+    );
+    await waitForEffects();
+
+    expect(setPointerCapture).not.toHaveBeenCalled();
     dispose();
   });
 });

@@ -17,6 +17,34 @@ Main canvas component with viewport management, zoom/pan controls, and transform
 - **Ellipse** - Render ellipses with optional fill
 - **Rectangle** - Render rectangles with optional fill
 
+### Transform Components
+- **Rotation2D** - Rotate children around a center point
+- **Translate2D** - Translate children by a 2D offset vector
+
+### Selection
+- **Select2D** - Selection overlay with interactive handles around children.
+  Displays a dashed bounding box and handle circles at corners + rotation
+  point. Click and drag on the bounding box to translate (move) the wrapped
+  content. Hover highlights the box (solid, 2px) and handles (yellow fill).
+
+  ```tsx
+  import { Select2D, Ellipse, Rectangle } from '@micurs/ts-geosolid-canvas';
+  import { Point } from '@micurs/ts-geopro';
+
+  <Select2D color="#00aaff" padding={4}>
+    <Ellipse id="shape1" center={Point.from(0, 0, 0)} width={100} height={60} color="#ff6600" />
+    <Rectangle id="shape2" center={Point.from(80, 40, 0)} width={60} height={40} color="#2266ff" />
+  </Select2D>
+  ```
+
+  **Props:**
+  - `color` - dashed border color (default: `#00aaff`)
+  - `handleColor` - handle fill color (default: `#ffffff`)
+  - `handleHighlightColor` - handle fill color on hover (default: `#ffdd00`)
+  - `padding` - padding around union bounds in world units (default: 6)
+
+  Each child must have a unique `id` prop for bounding box registration.
+
 ## Features
 
 - SolidJS reactive rendering
@@ -25,12 +53,7 @@ Main canvas component with viewport management, zoom/pan controls, and transform
 - Mouse wheel zoom
 - Drag to pan
 - Responsive canvas sizing
-
-## Dependencies
-
-- solid-js ^1.9.6
-- roughjs ^4.6.6
-- @micurs/ts-geopro workspace:*
+- Selection overlays with interactive drag translation
 
 ## Usage
 
@@ -68,4 +91,4 @@ const Cross = buildCanvasComponent<CrossProps>((vp, props) => {
 
 ## Version
 
-0.1.0
+0.3.0
