@@ -44,6 +44,8 @@ Main canvas component with viewport management, zoom/pan controls, and transform
   - `handleColor` - handle fill color (default: `#ffffff`)
   - `handleHighlightColor` - handle fill color on hover (default: `#ffdd00`)
   - `padding` - padding around union bounds in world units (default: 6)
+  - `snapRotation` - snap rotation to 90-degree increments (default: `false`)
+  - `snapRotationColor` - rotation arc/handle color when snapped (default: `#ff8c00`)
 
   Each child must have a unique `id` prop for bounding box registration.
 
@@ -93,4 +95,4 @@ const Cross = buildCanvasComponent<CrossProps>((vp, props) => {
 
 ## Version
 
-0.5.0
+0.6.0

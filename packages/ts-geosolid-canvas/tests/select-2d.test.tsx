@@ -31,14 +31,17 @@ function emit(canvas: HTMLCanvasElement, handler: (e: PointerEvent) => void, eve
   handler(event);
 }
 
-const createMockViewport = (): Viewport => ({
-  ctx: {
+const createMockViewport = (): Viewport => {
+  const strokeStyleLog: string[] = [];
+  let _strokeStyle = '';
+  const ctx = {
     save: vi.fn(),
     restore: vi.fn(),
     setTransform: vi.fn(),
     clearRect: vi.fn(),
     strokeRect: vi.fn(),
-    strokeStyle: '',
+    get strokeStyle() { return _strokeStyle; },
+    set strokeStyle(v: string) { _strokeStyle = v; strokeStyleLog.push(v); },
     lineWidth: 1,
     setLineDash: vi.fn(),
     beginPath: vi.fn(),
@@ -46,10 +49,10 @@ const createMockViewport = (): Viewport => ({
     arc: vi.fn(),
     fill: vi.fn(),
     fillStyle: '',
-      closePath: vi.fn(),
-      moveTo: vi.fn(),
-      lineTo: vi.fn(),
-      isPointInPath: vi.fn(),
+    closePath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    isPointInPath: vi.fn(),
     canvas: {
       width: 800,
       height: 600,
@@ -57,13 +60,17 @@ const createMockViewport = (): Viewport => ({
       removeEventListener: vi.fn(),
       getBoundingClientRect: () => ({ left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600 }),
     },
-  } as unknown as CanvasRenderingContext2D,
-  scaleFactor: 1,
-  trans: [0, 0],
-  transform: Transform.identity(),
-  dimensions: [800, 600],
-  pan: [0, 0],
-});
+  } as unknown as CanvasRenderingContext2D & { _strokeStyleLog: string[] };
+  ctx._strokeStyleLog = strokeStyleLog;
+  return {
+    ctx,
+    scaleFactor: 1,
+    trans: [0, 0],
+    transform: Transform.identity(),
+    dimensions: [800, 600],
+    pan: [0, 0],
+  };
+};
 
 const contextStub = <T>(vp: () => T) => ({
   vp,
@@ -831,7 +838,120 @@ describe('Select2D component', () => {
 });
 
 
-// Verified-by-construction tests for the rotated-scale interaction.
+describe('Select2D rotation snapping', () => {
+  function createSnapTestSetup(snapRotation: boolean): { vp: () => Viewport; container: HTMLDivElement; dispose: () => void } {
+    const [vp, _setVp] = createSignal<Viewport>(createMockViewport());
+    const RegisterBounds = () => {
+      const selCtx = useContext(selectionContext);
+      selCtx.registerBounds('shape', { min: Point.from(0, 0, 0), max: Point.from(100, 60, 0) });
+      return null;
+    };
+
+    const container = document.createElement('div');
+    const dispose = render(
+      () => (
+        <canvasContext.Provider value={contextStub(vp)}>
+          <Select2D padding={4} snapRotation={snapRotation}>
+            <RegisterBounds />
+          </Select2D>
+        </canvasContext.Provider>
+      ),
+      container,
+    );
+    return { vp, container, dispose };
+  }
+
+  test('rotation remains unsnapped by default', async () => {
+    const { vp, dispose } = createSnapTestSetup(false);
+    await waitForEffects();
+
+    const canvas = vp()!.ctx.canvas;
+    const addCalls = (canvas.addEventListener as ReturnType<typeof vi.fn>).mock.calls;
+    const pointerDown = addCalls.find((c: unknown[]) => c[0] === 'pointerdown')?.[1] as (e: PointerEvent) => void;
+    const pointerMove = addCalls.find((c: unknown[]) => c[0] === 'pointermove')?.[1] as (e: PointerEvent) => void;
+
+    const setPointerCapture = vi.fn();
+    Object.defineProperty(canvas, 'setPointerCapture', { value: setPointerCapture });
+
+    const strokeStyleLog = (vp()!.ctx as unknown as { _strokeStyleLog: string[] })._strokeStyleLog;
+    strokeStyleLog.length = 0;
+
+    // Start rotation on rotation handle at (50, -84)
+    const evt = createPointerEvent('pointerdown', { clientX: 50, clientY: -84, pointerId: 1 });
+    evt.stopImmediatePropagation = vi.fn();
+    emit(canvas, pointerDown, evt);
+    await waitForEffects();
+
+    // Move to near π/2 → rawAngle ≈ 90° without snap
+    emit(canvas, pointerMove, createPointerEvent('pointermove', { clientX: 150, clientY: -30 }));
+    await waitForEffects();
+
+    // Snap color (#ff8c00) should NOT appear
+    expect(strokeStyleLog).not.toContain('#ff8c00');
+    dispose();
+  });
+
+  test('snapRotation enabled snaps near 90 degrees', async () => {
+    const { vp, dispose } = createSnapTestSetup(true);
+    await waitForEffects();
+
+    const canvas = vp()!.ctx.canvas;
+    const addCalls = (canvas.addEventListener as ReturnType<typeof vi.fn>).mock.calls;
+    const pointerDown = addCalls.find((c: unknown[]) => c[0] === 'pointerdown')?.[1] as (e: PointerEvent) => void;
+    const pointerMove = addCalls.find((c: unknown[]) => c[0] === 'pointermove')?.[1] as (e: PointerEvent) => void;
+
+    const setPointerCapture = vi.fn();
+    Object.defineProperty(canvas, 'setPointerCapture', { value: setPointerCapture });
+
+    const strokeStyleLog = (vp()!.ctx as unknown as { _strokeStyleLog: string[] })._strokeStyleLog;
+    strokeStyleLog.length = 0;
+
+    // Start rotation on rotation handle
+    const evt = createPointerEvent('pointerdown', { clientX: 50, clientY: -84, pointerId: 1 });
+    evt.stopImmediatePropagation = vi.fn();
+    emit(canvas, pointerDown, evt);
+    await waitForEffects();
+
+    // Move to near π/2 → rawAngle ≈ 90°, should snap
+    emit(canvas, pointerMove, createPointerEvent('pointermove', { clientX: 150, clientY: -30 }));
+    await waitForEffects();
+
+    expect(strokeStyleLog).toContain('#ff8c00');
+    dispose();
+  });
+
+  test('snapRotation enabled: outside threshold preserves free rotation', async () => {
+    const { vp, dispose } = createSnapTestSetup(true);
+    await waitForEffects();
+
+    const canvas = vp()!.ctx.canvas;
+    const addCalls = (canvas.addEventListener as ReturnType<typeof vi.fn>).mock.calls;
+    const pointerDown = addCalls.find((c: unknown[]) => c[0] === 'pointerdown')?.[1] as (e: PointerEvent) => void;
+    const pointerMove = addCalls.find((c: unknown[]) => c[0] === 'pointermove')?.[1] as (e: PointerEvent) => void;
+
+    const setPointerCapture = vi.fn();
+    Object.defineProperty(canvas, 'setPointerCapture', { value: setPointerCapture });
+
+    const strokeStyleLog = (vp()!.ctx as unknown as { _strokeStyleLog: string[] })._strokeStyleLog;
+    strokeStyleLog.length = 0;
+
+    // Start rotation on rotation handle
+    const evt = createPointerEvent('pointerdown', { clientX: 50, clientY: -84, pointerId: 1 });
+    evt.stopImmediatePropagation = vi.fn();
+    emit(canvas, pointerDown, evt);
+    await waitForEffects();
+
+    // rawAngle ≈ 0.5 rad (~28.7°) > 15° threshold, should NOT snap
+    emit(canvas, pointerMove, createPointerEvent('pointermove', { clientX: 79, clientY: -83 }));
+    await waitForEffects();
+
+    expect(strokeStyleLog).not.toContain('#ff8c00');
+    dispose();
+  });
+});
+
+
+//Verified-by-construction tests for the rotated-scale interaction.
 //
 // During the drag (buildScaleChildTransform): rotation is around the ORIGINAL
 // center so the box stays rectangular, the opposite (pivot) corner stays

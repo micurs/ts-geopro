@@ -36,12 +36,36 @@ export interface Select2DProps {
   handleHighlightColor?: string;
   /** Padding around union bounds in world units (default: 6) */
   padding?: number;
+  /** Snap rotation to 90-degree increments (default: false) */
+  snapRotation?: boolean;
+  /** Rotation arc/handle color when snapped (default: '#ff8c00') */
+  snapRotationColor?: string;
 }
 
 const DEFAULT_COLOR = "#00aaff";
 const DEFAULT_HANDLE_COLOR = "#ffffff";
 const DEFAULT_HANDLE_HIGHLIGHT_COLOR = "#ffdd00";
 const DEFAULT_PADDING = 6;
+const DEFAULT_SNAP_COLOR = "#ff8c00";
+
+/**
+ * Snap an angle to the nearest 90-degree (π/2) increment within a threshold.
+ *
+ * @param angle     - Raw angle in radians.
+ * @param threshold - Snap threshold in radians (default 3°).
+ * @returns         - `[snappedAngle, isSnapped]` where `snappedAngle` is the
+ *                    snapped angle, and `isSnapped` is true when within threshold.
+ */
+function snapToQuadrant(angle: number, threshold = 3 * Math.PI / 180): [number, boolean] {
+  const quadrant = Math.round(angle / (Math.PI / 2));
+  const snapped = quadrant * (Math.PI / 2);
+  const diff = angle - snapped;
+  // Normalize diff to [-π/4, π/4] for threshold comparison
+  const normDiff = diff - Math.round(diff / (Math.PI / 2)) * (Math.PI / 2);
+  return Math.abs(normDiff) <= threshold
+    ? [snapped, true]
+    : [angle, false];
+}
 
 const HANDLE_RADIUS = 5;
 const HANDLE_HIT_RADIUS = 7;
@@ -329,6 +353,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
   const [rotPointerPos, setRotPointerPos] = createSignal<Point | null>(null);
   const [rotInitAngle, setRotInitAngle] = createSignal(0);
   const [arcDelta, setArcDelta] = createSignal(0);
+  const [isRotationSnapped, setIsRotationSnapped] = createSignal(false);
 
   const [scaleDelta, setScaleDelta] = createSignal<[number, number]>([1, 1]);
 
@@ -440,6 +465,8 @@ export const Select2D: Component<Select2DProps> = (props) => {
 
     const p = padding();
     const col = color();
+    const snapCol = props.snapRotationColor ?? DEFAULT_SNAP_COLOR;
+    const snapped = isRotationSnapped();
     const M = vp.transform;
 
     // The selection box outline tracks the children exactly: the UNPADDED
@@ -533,6 +560,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
     }
 
     const rotHandlePos = selRefs.positions[4]!;
+    vp.ctx.strokeStyle = snapped ? snapCol : col;
     vp.ctx.beginPath();
     vp.ctx.moveTo(topMid.x, topMid.y);
     vp.ctx.lineTo(rotHandlePos.x, rotHandlePos.y);
@@ -541,13 +569,13 @@ export const Select2D: Component<Select2DProps> = (props) => {
     // Center crosshair, only while rotating
     if (rotatingNow) {
       vp.ctx.setLineDash([]);
-      drawCenterCrosshair(vp.ctx, center, col);
+      drawCenterCrosshair(vp.ctx, center, snapped ? snapCol : col);
     }
 
     // Line and arc from center to mouse cursor while rotating
     if (rotatingNow && rotPtr) {
-      drawPointerLine(vp.ctx, center, rotPtr, col);
-      drawRotationArc(vp.ctx, center, 50, initAngle, rotArcDelta, col);
+      drawPointerLine(vp.ctx, center, rotPtr, snapped ? snapCol : col);
+      drawRotationArc(vp.ctx, center, 50, initAngle, rotArcDelta, snapped ? snapCol : col);
     }
 
     vp.ctx.globalAlpha = 1;
@@ -602,6 +630,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
             rotationBase = untrack(() => rotationAngle());
             rotating = true;
             setIsRotating(true);
+            setIsRotationSnapped(false);
             canvas.setPointerCapture(e.pointerId);
           } else if (i < 4) {
             e.stopImmediatePropagation();
@@ -662,7 +691,6 @@ export const Select2D: Component<Select2DProps> = (props) => {
         const rect = canvas.getBoundingClientRect();
         const sx = e.clientX - rect.left;
         const sy = e.clientY - rect.top;
-        setRotPointerPos(Point.from(sx, sy, 0));
         const p0 = selRefs.positions[0]!;
         const p2 = selRefs.positions[2]!;
         const midX = (p0.x + p2.x) / 2;
@@ -672,13 +700,37 @@ export const Select2D: Component<Select2DProps> = (props) => {
         if (delta > Math.PI) delta -= 2 * Math.PI;
         if (delta < -Math.PI) delta += 2 * Math.PI;
         lastMouseAngle = curAngle;
-        setArcDelta((prev) => {
-          let next = prev + delta;
-          if (next > Math.PI * 2) next -= Math.PI * 2;
-          if (next < -Math.PI * 2) next += Math.PI * 2;
-          return next;
-        });
-        setRotationAngle(rotationBase + curAngle - rotInitAngle());
+
+        const rawAngle = rotationBase + curAngle - rotInitAngle();
+        let appliedAngle = rawAngle;
+        let snappedActive = false;
+        if (props.snapRotation) {
+          const [snapped, active] = snapToQuadrant(rawAngle);
+          appliedAngle = active ? snapped : rawAngle;
+          snappedActive = active;
+        }
+        setRotationAngle(appliedAngle);
+        setIsRotationSnapped(snappedActive);
+
+        if (snappedActive) {
+          const dist = Math.hypot(sx - midX, sy - midY);
+          const snapDelta = appliedAngle - rotationBase;
+          const snapScreenAngle = rotInitAngle() + snapDelta;
+          setRotPointerPos(Point.from(
+            midX + dist * Math.cos(snapScreenAngle),
+            midY + dist * Math.sin(snapScreenAngle),
+            0,
+          ));
+        } else {
+          setRotPointerPos(Point.from(sx, sy, 0));
+        }
+        // Always compute arcDelta from appliedAngle so visual stays in sync
+        const prevArc = untrack(() => arcDelta());
+        const newArc = appliedAngle - rotationBase;
+        let diff = newArc - prevArc;
+        if (diff > Math.PI) diff -= 2 * Math.PI;
+        if (diff < -Math.PI) diff += 2 * Math.PI;
+        setArcDelta(prevArc + diff);
         return;
       }
 
@@ -755,6 +807,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
         rotating = false;
         setIsRotating(false);
         setRotPointerPos(null);
+        setIsRotationSnapped(false);
         return;
       }
       if (scaling) {

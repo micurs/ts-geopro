@@ -54,7 +54,7 @@ const App = () => {
         steps={10}
       />
 
-      <Select2D padding={1} color="#fff0ff">
+      <Select2D padding={1} color="#fff0ff" snapRotation>
         <Ellipse
           id="demo-ellipse"
           center={Point.from(-50, -50, 0)}
