@@ -26,6 +26,7 @@ Before drafting the plan:
    - `MINOR` for backward-compatible functionality.
    - `PATCH` for backward-compatible fixes, docs, tests, or internal implementation changes.
    - `none` when no package version should change, and explain why.
+6. First step should always be to create the branch and link it to the ticket.
 
 ## Output Format
 
@@ -58,3 +59,7 @@ Produce the plan with exactly these top-level sections and in this order:
 ```
 
 Keep the plan concrete enough to execute, but avoid over-specifying code that should be discovered during implementation. If the ticket is ambiguous, include the assumption in the relevant section and ask only for information that materially affects the plan.
+
+Once the plan is approved by the user post it - in full - as a comment on the Gitea issue.
+Use `./scripts/gitea-helper.sh comment <issue-number> "$(cat plan.md)"` to post the plan.
+Do not post the plan until it is approved by the user.

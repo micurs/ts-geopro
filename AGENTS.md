@@ -13,6 +13,20 @@
   demos, and optional `tea` CLI + `scripts/gitea-helper.sh` for issue/PR
   automation.
 
+## Skills
+
+They are located in the `.skills/` directory and designed to guide agents
+through specific workflows. Each skill has a `SKILL.md` that defines its
+purpose, when to use it.
+
+- `planning`: For drafting implementation plans based on Gitea tickets. Requires
+  a ticket reference and produces structured plans with rationale, steps,
+  version changes, and tests.
+
+- `code-review`: For reviewing PRs with a focus on code quality,
+  maintainability, and alignment with project conventions. Provides actionable
+  feedback and a summary of findings.
+
 ## Repository Layout
 
 - `packages/ts-geopro`: Core library with geometric entities
@@ -63,7 +77,8 @@
    through the issue.
 2. For Plan Mode or pre-implementation planning, use the repo-local
    `.skills/planning` skill. Plans must reference a Gitea ticket and include the
-   required ticket/branch, rationale, steps, version changes, and tests sections.
+   required ticket/branch, rationale, steps, version changes, and tests
+   sections.
 3. Branch off `main`, naming the branch after the issue with the
    `<username>/<ticket-number>-<short-title>` convention, and keep commits
    scoped/atomic.

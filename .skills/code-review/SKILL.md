@@ -180,6 +180,12 @@ Prioritize findings in this order:
 Do not flood the review with low-value nits if there are larger structural issues.
 Prefer a smaller number of high-conviction comments over a long list of cosmetic notes.
 
+Post comments on the PR with explicit suggestions for improvement, ideally with code snippets showing how to reframe the implementation.
+Post a general summary at the end of the review with:
+  (1) your understanding of the change,
+  (2) the main code-quality issues you found, and
+  (3) the most important things to fix before approval.
+
 ## Approval Bar
 
 Do not approve merely because behavior seems correct.

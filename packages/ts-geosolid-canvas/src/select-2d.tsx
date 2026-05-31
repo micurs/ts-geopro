@@ -6,13 +6,17 @@ import {
   untrack,
   useContext,
 } from "solid-js";
+import { createStore } from "solid-js/store";
 import type { Component, JSX } from "solid-js";
 import { canvasContext } from "./canvas/canvas-context.ts";
 import { selectionContext } from "./canvas/selection.ts";
 import {
+  drawBox,
   drawCenterCrosshair,
+  drawHandle,
   drawPointerLine,
   drawRotationArc,
+  type CornerQuad,
 } from "./canvas/drawing.ts";
 import type { BoundingBox } from "./types.ts";
 import type { SelectionCommit } from "./canvas/selection.ts";
@@ -40,6 +44,22 @@ export interface Select2DProps {
   snapRotation?: boolean;
   /** Rotation arc/handle color when snapped (default: '#ff8c00') */
   snapRotationColor?: string;
+}
+
+interface Select2DState {
+  hoveredBox: boolean;
+  hoveredHandle: number;
+  dragDelta: Vector;
+  dragging: boolean;
+  dragScreenStart: Point | null;
+  dragBase: Vector;
+  rotationAngle: number;
+  isRotating: boolean;
+  rotPointerPos: Point | null;
+  rotInitAngle: number;
+  arcDelta: number;
+  lastMouseAngle: number;
+  rotationBase: number;
 }
 
 const DEFAULT_COLOR = "#00aaff";
@@ -162,37 +182,6 @@ export function buildScaleChildTransform(
  * @param r     - handle radius (screen pixels)
  * @param fill  - fill color
  */
-/**
- * Draw the selection bounding-box outline as a closed path through its four
- * screen-space corners.
- */
-function drawBox(ctx: CanvasRenderingContext2D, corners: CornerQuad): void {
-  ctx.beginPath();
-  ctx.moveTo(corners[0].x, corners[0].y);
-  ctx.lineTo(corners[1].x, corners[1].y);
-  ctx.lineTo(corners[2].x, corners[2].y);
-  ctx.lineTo(corners[3].x, corners[3].y);
-  ctx.closePath();
-  ctx.stroke();
-}
-
-function drawHandle(
-  ctx: CanvasRenderingContext2D,
-  pos: Point,
-  r: number,
-  fill: string,
-): void {
-  ctx.beginPath();
-  ctx.arc(pos.x, pos.y, r, 0, 2 * Math.PI);
-  ctx.fillStyle = fill;
-  ctx.strokeStyle = "#333333";
-  ctx.lineWidth = 1.5;
-  ctx.fill();
-  ctx.stroke();
-}
-
-type CornerQuad = [Point, Point, Point, Point];
-
 interface SelectionRefs {
   positions: Point[];
 }
@@ -344,26 +333,25 @@ export const Select2D: Component<Select2DProps> = (props) => {
   const handleHighlightColor = () =>
     props.handleHighlightColor ?? DEFAULT_HANDLE_HIGHLIGHT_COLOR;
 
-  const [hoveredBox, setHoveredBox] = createSignal(false);
-  const [hoveredHandle, setHoveredHandle] = createSignal(-1);
-  const [dragDelta, setDragDelta] = createSignal(Vector.from(0, 0, 0));
+  const [state, setState] = createStore<Select2DState>({
+    hoveredBox: false,
+    hoveredHandle: -1,
+    dragDelta: Vector.from(0, 0, 0),
+    dragging: false,
+    dragScreenStart: null,
+    dragBase: Vector.from(0, 0, 0),
+    rotationAngle: 0,
+    isRotating: false,
+    rotPointerPos: null,
+    rotInitAngle: 0,
+    arcDelta: 0,
+    lastMouseAngle: 0,
+    rotationBase: 0,
+  });
 
-  const [rotationAngle, setRotationAngle] = createSignal(0);
-  const [isRotating, setIsRotating] = createSignal(false);
-  const [rotPointerPos, setRotPointerPos] = createSignal<Point | null>(null);
-  const [rotInitAngle, setRotInitAngle] = createSignal(0);
-  const [arcDelta, setArcDelta] = createSignal(0);
   const [isRotationSnapped, setIsRotationSnapped] = createSignal(false);
 
   const [scaleDelta, setScaleDelta] = createSignal<[number, number]>([1, 1]);
-
-  let dragging = false;
-  let dragScreenStart: Point | null = null;
-  let dragBase = Vector.from(0, 0, 0);
-
-  let rotating = false;
-  let rotationBase = 0;
-  let lastMouseAngle = 0;
 
   // Scale uses an axis-aligned (un-rotated) box space so the scale factors
   // are always world-axis-aligned. The selection's rotation is applied
@@ -394,8 +382,8 @@ export const Select2D: Component<Select2DProps> = (props) => {
     if (!vp) {
       return undefined;
     }
-    const d = dragDelta();
-    const angle = rotationAngle();
+    const d = state.dragDelta;
+    const angle = state.rotationAngle;
     const [sx, sy] = scaleDelta();
     const box = unionBounds();
 
@@ -445,12 +433,12 @@ export const Select2D: Component<Select2DProps> = (props) => {
     ctx?.redrawVersion();
     const vp = childViewport();
     const box = unionBounds();
-    const rotatingNow = isRotating();
-    const hovBox = hoveredBox();
-    const hovHandle = hoveredHandle();
-    const rotPtr = rotPointerPos();
-    const initAngle = rotInitAngle();
-    const rotArcDelta = arcDelta();
+    const rotatingNow = state.isRotating;
+    const hovBox = state.hoveredBox;
+    const hovHandle = state.hoveredHandle;
+    const rotPtr = state.rotPointerPos;
+    const initAngle = state.rotInitAngle;
+    const rotArcDelta = state.arcDelta;
 
     if (!vp) {
       return;
@@ -605,8 +593,8 @@ export const Select2D: Component<Select2DProps> = (props) => {
 
     const hoverHandler = createPointerMoveHandler(
       selRefs,
-      setHoveredHandle,
-      setHoveredBox,
+      (v: number) => setState('hoveredHandle', v),
+      (v: boolean) => setState('hoveredBox', v),
     );
 
     const onPointerDown = (e: PointerEvent) => {
@@ -624,12 +612,13 @@ export const Select2D: Component<Select2DProps> = (props) => {
             const mid = p0.add(Vector.fromPoints(p2, p0).scale(0.5));
             // Angle of cursor relative to rotation center (screen space)
             const angle = Math.atan2(sp.y - mid.y, sp.x - mid.x);
-            setRotInitAngle(angle);
-            lastMouseAngle = angle;
-            setArcDelta(0);
-            rotationBase = untrack(() => rotationAngle());
-            rotating = true;
-            setIsRotating(true);
+            setState({
+              rotInitAngle: angle,
+              lastMouseAngle: angle,
+              arcDelta: 0,
+              rotationBase: untrack(() => state.rotationAngle),
+              isRotating: true,
+            });
             setIsRotationSnapped(false);
             canvas.setPointerCapture(e.pointerId);
           } else if (i < 4) {
@@ -678,15 +667,17 @@ export const Select2D: Component<Select2DProps> = (props) => {
         pointInConvexPolygon(sp, selRefs.positions.slice(0, 4))
       ) {
         e.stopImmediatePropagation();
-        dragScreenStart = sp;
-        dragBase = untrack(() => dragDelta());
-        dragging = true;
+        setState({
+          dragScreenStart: sp,
+          dragBase: untrack(() => state.dragDelta),
+          dragging: true,
+        });
         canvas.setPointerCapture(e.pointerId);
       }
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (rotating) {
+      if (state.isRotating) {
         e.stopImmediatePropagation();
         const rect = canvas.getBoundingClientRect();
         const sx = e.clientX - rect.left;
@@ -696,12 +687,12 @@ export const Select2D: Component<Select2DProps> = (props) => {
         const midX = (p0.x + p2.x) / 2;
         const midY = (p0.y + p2.y) / 2;
         const curAngle = Math.atan2(sy - midY, sx - midX);
-        let delta = curAngle - lastMouseAngle;
+        let delta = curAngle - state.lastMouseAngle;
         if (delta > Math.PI) delta -= 2 * Math.PI;
         if (delta < -Math.PI) delta += 2 * Math.PI;
-        lastMouseAngle = curAngle;
+        setState('lastMouseAngle', curAngle);
 
-        const rawAngle = rotationBase + curAngle - rotInitAngle();
+        const rawAngle = state.rotationBase + curAngle - state.rotInitAngle;
         let appliedAngle = rawAngle;
         let snappedActive = false;
         if (props.snapRotation) {
@@ -709,28 +700,28 @@ export const Select2D: Component<Select2DProps> = (props) => {
           appliedAngle = active ? snapped : rawAngle;
           snappedActive = active;
         }
-        setRotationAngle(appliedAngle);
+        setState('rotationAngle', appliedAngle);
         setIsRotationSnapped(snappedActive);
 
         if (snappedActive) {
           const dist = Math.hypot(sx - midX, sy - midY);
-          const snapDelta = appliedAngle - rotationBase;
-          const snapScreenAngle = rotInitAngle() + snapDelta;
-          setRotPointerPos(Point.from(
+          const snapDelta = appliedAngle - state.rotationBase;
+          const snapScreenAngle = state.rotInitAngle + snapDelta;
+          setState('rotPointerPos', Point.from(
             midX + dist * Math.cos(snapScreenAngle),
             midY + dist * Math.sin(snapScreenAngle),
             0,
           ));
         } else {
-          setRotPointerPos(Point.from(sx, sy, 0));
+          setState('rotPointerPos', Point.from(sx, sy, 0));
         }
         // Always compute arcDelta from appliedAngle so visual stays in sync
-        const prevArc = untrack(() => arcDelta());
-        const newArc = appliedAngle - rotationBase;
+        const prevArc = state.arcDelta;
+        const newArc = appliedAngle - state.rotationBase;
         let diff = newArc - prevArc;
         if (diff > Math.PI) diff -= 2 * Math.PI;
         if (diff < -Math.PI) diff += 2 * Math.PI;
-        setArcDelta(prevArc + diff);
+        setState('arcDelta', prevArc + diff);
         return;
       }
 
@@ -741,8 +732,8 @@ export const Select2D: Component<Select2DProps> = (props) => {
           const rect = canvas.getBoundingClientRect();
           const sx = e.clientX - rect.left;
           const sy = e.clientY - rect.top;
-          const d = untrack(() => dragDelta());
-          const angle = untrack(() => rotationAngle());
+          const d = state.dragDelta;
+          const angle = state.rotationAngle;
           const tTx = Transform.fromTranslation(d.x, -d.y, 0);
           const baseTx = compose(tTx, parentVp.transform);
           // Convert the mouse into axis-aligned box space by inverting the
@@ -782,7 +773,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
         return;
       }
 
-      if (dragging && dragScreenStart) {
+      if (state.dragging && state.dragScreenStart) {
         e.stopImmediatePropagation();
         const parentVp = ctx?.vp();
         if (parentVp) {
@@ -790,10 +781,10 @@ export const Select2D: Component<Select2DProps> = (props) => {
           const sx = e.clientX - rect.left;
           const sy = e.clientY - rect.top;
           const sf = parentVp.scaleFactor;
-          const worldDx = (sx - dragScreenStart.x) * sf;
-          const worldDy = -(sy - dragScreenStart.y) * sf;
-          setDragDelta(
-            Vector.from(dragBase.x + worldDx, dragBase.y + worldDy, 0),
+          const worldDx = (sx - state.dragScreenStart.x) * sf;
+          const worldDy = -(sy - state.dragScreenStart.y) * sf;
+          setState('dragDelta',
+            Vector.from(state.dragBase.x + worldDx, state.dragBase.y + worldDy, 0),
           );
         }
         return;
@@ -802,11 +793,9 @@ export const Select2D: Component<Select2DProps> = (props) => {
     };
 
     const onPointerUp = (e: PointerEvent) => {
-      if (rotating) {
+      if (state.isRotating) {
         e.stopImmediatePropagation();
-        rotating = false;
-        setIsRotating(false);
-        setRotPointerPos(null);
+        setState({ isRotating: false, rotPointerPos: null });
         setIsRotationSnapped(false);
         return;
       }
@@ -820,7 +809,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
         const pivot = scaleShiftActive ? scaleCenterPivot : scalePivot;
         if (transformHandlers.size > 0 && pivot) {
           const [sx, sy] = untrack(() => scaleDelta());
-          const angle = untrack(() => rotationAngle());
+          const angle = state.rotationAngle;
           const commit: SelectionCommit = {
             type: "scale",
             scale: Vector.from(sx, sy, 0),
@@ -835,7 +824,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
           if (angle !== 0) {
             const parentVp = ctx?.vp();
             if (parentVp) {
-              const d = untrack(() => dragDelta());
+              const d = state.dragDelta;
               const baseTx = compose(
                 Transform.fromTranslation(d.x, -d.y, 0),
                 parentVp.transform,
@@ -857,29 +846,30 @@ export const Select2D: Component<Select2DProps> = (props) => {
         scalePivot = null;
         return;
       }
-      if (dragging) {
+      if (state.dragging) {
         e.stopImmediatePropagation();
-        dragging = false;
-        dragScreenStart = null;
+        setState({ dragging: false, dragScreenStart: null });
         // Commit translate to children then reset
         if (transformHandlers.size > 0) {
-          const d = untrack(() => dragDelta());
+          const d = state.dragDelta;
           if (d.x !== 0 || d.y !== 0) {
             const commit: SelectionCommit = {
               type: "translate",
               delta: d,
             };
             transformHandlers.forEach((h) => h(commit));
-            setDragDelta(Vector.from(0, 0, 0));
-            dragBase = Vector.from(0, 0, 0);
+            setState({
+              dragDelta: Vector.from(0, 0, 0),
+              dragBase: Vector.from(0, 0, 0),
+            });
           }
         }
       }
     };
 
     const onPointerLeave = () => {
-      setHoveredBox(false);
-      setHoveredHandle(-1);
+      setState('hoveredBox', false);
+      setState('hoveredHandle', -1);
     };
 
     canvas.addEventListener("pointerdown", onPointerDown, { capture: true });

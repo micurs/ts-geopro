@@ -1,5 +1,7 @@
 import { Point } from "@micurs/ts-geopro";
 
+export type CornerQuad = [Point, Point, Point, Point];
+
 /**
  * Draw a filled-pie + stroked-arc indicating a rotation angle.
  * The arc sweeps from `startAngle` by `delta` radians; the direction
@@ -93,5 +95,45 @@ export function drawPointerLine(
   ctx.beginPath();
   ctx.moveTo(from.x, from.y);
   ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+}
+
+/**
+ * Draw the selection bounding-box outline as a closed path through its four
+ * screen-space corners.
+ *
+ * @param ctx     - target canvas 2D context (identity transform)
+ * @param corners - four screen-space corner positions in order (ccw or cw)
+ */
+export function drawBox(ctx: CanvasRenderingContext2D, corners: CornerQuad): void {
+  ctx.beginPath();
+  ctx.moveTo(corners[0].x, corners[0].y);
+  ctx.lineTo(corners[1].x, corners[1].y);
+  ctx.lineTo(corners[2].x, corners[2].y);
+  ctx.lineTo(corners[3].x, corners[3].y);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+/**
+ * Draw a selection handle as a filled-and-stroked circle.
+ *
+ * @param ctx  - target canvas 2D context (identity transform)
+ * @param pos  - handle center in screen pixels
+ * @param r    - handle radius in screen pixels
+ * @param fill - CSS fill color for the handle circle
+ */
+export function drawHandle(
+  ctx: CanvasRenderingContext2D,
+  pos: Point,
+  r: number,
+  fill: string,
+): void {
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, r, 0, 2 * Math.PI);
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = "#333333";
+  ctx.lineWidth = 1.5;
+  ctx.fill();
   ctx.stroke();
 }
