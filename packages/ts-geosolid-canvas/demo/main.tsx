@@ -6,16 +6,16 @@ import {
   Line,
   PerfectGrid,
   Rectangle,
-  Rotation2D,
+  Rotation2D as _Rotation2D,
   Select2D,
-  Translate2D,
+  Translate2D as _Translate2D,
 } from "../src/index.ts";
-import { Point, Vector } from "@micurs/ts-geopro";
+import { Point, Vector as _Vector } from "@micurs/ts-geopro";
 
 const App = () => {
-  const [angle1, setAngle1] = createSignal(0);
-  const [angle2, setAngle2] = createSignal(0);
-  const [tx, setTx] = createSignal(0);
+  const [_angle1, setAngle1] = createSignal(0);
+  const [_angle2, setAngle2] = createSignal(0);
+  const [_tx, setTx] = createSignal(0);
   let dir = 1;
 
   onMount(() => {
@@ -57,22 +57,34 @@ const App = () => {
       <Select2D padding={1} color="#fff0ff">
         <Ellipse
           id="demo-ellipse"
-          center={Point.from(-80, -80, 0)}
-          width={120}
-          height={60}
+          center={Point.from(-50, -50, 0)}
+          width={100}
+          height={100}
           color="#ff6600"
           strokeWidth={2}
         />
         <Rectangle
           id="demo-rect"
-          center={Point.from(25, 40, 0)}
-          width={60}
+          center={Point.from(50, 80, 0)}
+          width={100}
           height={40}
-          color="#2266ff"
+          color="#60b0ff"
           strokeWidth={2}
+        />
+        <Line
+          id="demo-line"
+          from={Point.from(-90, 90, 0)}
+          to={Point.from(90, -90, 0)}
+          color="#00ff00"
+          width={1}
+          end="arrow"
+          endSize={3}
+          endStyle="filled"
         />
       </Select2D>
 
+      {
+        /*
       <Select2D
         padding={1}
         color="red"
@@ -149,6 +161,9 @@ const App = () => {
           strokeWidth={2}
         />
       </Rotation2D>
+
+        */
+      }
     </Canvas>
   );
 };

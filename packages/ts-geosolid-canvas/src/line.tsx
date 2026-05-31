@@ -1,10 +1,11 @@
-import { Vector, UnitVector, Frame } from '@micurs/ts-geopro';
-import type { Point } from '@micurs/ts-geopro';
+import { Vector, UnitVector, Frame, Point } from '@micurs/ts-geopro';
 import { getScaledWidth } from './canvas/utils.ts';
 import { buildCanvasComponent } from './build-canvas-component.tsx';
-import { useShapeBoundsRegistration } from './canvas/selection.ts';
+import { selectionContext, useShapeBoundsRegistration, useTransformHandler } from './canvas/selection.ts';
+import type { BoundingBox } from './types.ts';
 import type { DrawableProps } from './types.ts';
 
+import { createSignal, createEffect, useContext } from 'solid-js';
 import type { Component } from 'solid-js';
 import type { Viewport } from './canvas/types.ts';
 
@@ -40,12 +41,6 @@ export interface LineProps extends DrawableProps {
 
 /**
  * Draw an arrowhead at a specified point
- * @param vp - The viewport context containing canvas and scale information
- * @param point - The point where the arrow tip should be positioned
- * @param direction - Unit vector indicating the direction the arrow points
- * @param size - Size of the arrow in logical units
- * @param color - Color to render the arrow
- * @param filled - Whether to fill the arrow (true) or stroke it (false)
  */
 const drawArrowHead = (
   vp: Viewport,
@@ -88,11 +83,6 @@ const drawArrowHead = (
 
 /**
  * Draw a circle at a specified point
- * @param vp - The viewport context containing canvas and scale information
- * @param point - The point where the circle center should be positioned
- * @param size - Radius of the circle in logical units
- * @param color - Color to render the circle
- * @param filled - Whether to fill the circle (true) or stroke it (false)
  */
 const drawCircle = (
   vp: Viewport,
@@ -118,14 +108,11 @@ const drawCircle = (
 
 /**
  * Draw a line with optional end caps (arrows or circles) on a canvas viewport
- * @param vp - The viewport context containing canvas and transformation info
- * @param line - The line properties including endpoints, color, and end cap options
  */
 export const drawLine = (vp: Viewport, line: LineProps) => {
   const { ctx, scaleFactor } = vp;
   const lineColor = line.color || 'black';
 
-  // Draw the line
   ctx.strokeStyle = lineColor;
   ctx.lineWidth = getScaledWidth(line.width ?? 1, scaleFactor);
   ctx.beginPath();
@@ -133,7 +120,6 @@ export const drawLine = (vp: Viewport, line: LineProps) => {
   ctx.lineTo(line.to.x, line.to.y);
   ctx.stroke();
 
-  // Draw start end cap if specified
   switch (line.start) {
     case 'arrow': {
       const direction = UnitVector.from(Vector.fromPoints(line.from, line.to));
@@ -152,7 +138,6 @@ export const drawLine = (vp: Viewport, line: LineProps) => {
     }
   }
 
-  // Draw end end cap if specified
   switch (line.end) {
     case 'arrow': {
       const direction = UnitVector.from(Vector.fromPoints(line.to, line.from));
@@ -172,28 +157,63 @@ export const drawLine = (vp: Viewport, line: LineProps) => {
   }
 };
 
-/**
- * Solid.JS component that renders a line on the canvas with optional arrows
- *
- * @example
- * ```tsx
- * <Line
- *   from={Point.from(0, 0, 0)}
- *   to={Point.from(100, 100, 0)}
- *   color="#ff0000"
- *   end="arrow"
- *   endStyle="filled"
- * />
- * ```
- */
 const LineBase = buildCanvasComponent<LineProps>(drawLine);
 
+/**
+ * SolidJS component that renders a line on the canvas.
+ * When placed inside a Select2D, automatically registers a transform
+ * handler so committed translate/scale operations update the endpoints
+ * in-place. Stroke width is not affected by scale.
+ */
 export const Line: Component<LineProps> = (props) => {
-  useShapeBoundsRegistration(props.id, () => ({
-    minX: Math.min(props.from.x, props.to.x),
-    minY: Math.min(props.from.y, props.to.y),
-    maxX: Math.max(props.from.x, props.to.x),
-    maxY: Math.max(props.from.y, props.to.y),
-  }));
-  return LineBase(props);
+  const selCtx = useContext(selectionContext);
+  const [from, setFrom] = createSignal(props.from);
+  const [to, setTo] = createSignal(props.to);
+
+  createEffect(() => setFrom(props.from));
+  createEffect(() => setTo(props.to));
+
+  const getBounds = (): BoundingBox => {
+    const f = from(), t = to();
+    return {
+      min: Point.from(Math.min(f.x, t.x), Math.min(f.y, t.y), 0),
+      max: Point.from(Math.max(f.x, t.x), Math.max(f.y, t.y), 0),
+    };
+  };
+
+  useShapeBoundsRegistration(props.id, getBounds);
+
+  useTransformHandler(props.id, (commit) => {
+    if (commit.type === 'translate') {
+      setFrom((p) => p.add(commit.delta));
+      setTo((p) => p.add(commit.delta));
+    } else if (commit.type === 'scale') {
+      const { scale, pivot } = commit;
+      setFrom((p) =>
+        Point.from(
+          pivot.x + scale.x * (p.x - pivot.x),
+          pivot.y + scale.y * (p.y - pivot.y),
+          0,
+        ),
+      );
+      setTo((p) =>
+        Point.from(
+          pivot.x + scale.x * (p.x - pivot.x),
+          pivot.y + scale.y * (p.y - pivot.y),
+          0,
+        ),
+      );
+    }
+    selCtx.registerBounds(props.id, getBounds());
+  });
+
+  const merged = new Proxy(props, {
+    get(target, key): unknown {
+      if (key === 'from') { return from(); }
+      if (key === 'to') { return to(); }
+      return (target as unknown as Record<string | symbol, unknown>)[key];
+    },
+  });
+
+  return LineBase(merged);
 };

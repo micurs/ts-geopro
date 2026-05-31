@@ -1,3 +1,5 @@
+import { Point } from "@micurs/ts-geopro";
+
 /**
  * Draw a filled-pie + stroked-arc indicating a rotation angle.
  * The arc sweeps from `startAngle` by `delta` radians; the direction
@@ -5,8 +7,7 @@
  * Modifies `ctx.fillStyle`, `ctx.strokeStyle`, `ctx.globalAlpha` on exit.
  *
  * @param ctx - target canvas 2D context
- * @param cx  - arc center X (screen pixels)
- * @param cy  - arc center Y (screen pixels)
+ * @param center - arc center (screen pixels)
  * @param radius - arc radius (screen pixels)
  * @param startAngle - starting angle in radians (0 = right, π/2 = down in screen coords)
  * @param delta - signed angular span in radians (positive = clockwise)
@@ -16,8 +17,7 @@
  */
 export function drawRotationArc(
   ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
+  center: Point,
   radius: number,
   startAngle: number,
   delta: number,
@@ -29,8 +29,8 @@ export function drawRotationArc(
   const ccw = delta < 0;
 
   ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.arc(cx, cy, radius, startAngle, endAngle, ccw);
+  ctx.moveTo(center.x, center.y);
+  ctx.arc(center.x, center.y, radius, startAngle, endAngle, ccw);
   ctx.closePath();
   ctx.fillStyle = color;
   ctx.globalAlpha = fillAlpha;
@@ -39,25 +39,23 @@ export function drawRotationArc(
   ctx.strokeStyle = color;
   ctx.globalAlpha = strokeAlpha;
   ctx.beginPath();
-  ctx.arc(cx, cy, radius, startAngle, endAngle, ccw);
+  ctx.arc(center.x, center.y, radius, startAngle, endAngle, ccw);
   ctx.stroke();
 }
 
 /**
- * Draw a small crosshair (plus-sign) centered at `(x, y)`.
+ * Draw a small crosshair (plus-sign) centered at a screen point.
  * Modifies `ctx.strokeStyle`, `ctx.lineWidth` on exit.
  *
  * @param ctx - target canvas 2D context
- * @param x   - center X (screen pixels)
- * @param y   - center Y (screen pixels)
+ * @param center - crosshair center (screen pixels)
  * @param color - CSS stroke color
  * @param size - half-length of each arm in pixels (default 8)
  * @param lineWidth - stroke width (default 1.5)
  */
 export function drawCenterCrosshair(
   ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
+  center: Point,
   color: string,
   size = 8,
   lineWidth = 1.5,
@@ -65,31 +63,27 @@ export function drawCenterCrosshair(
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
   ctx.beginPath();
-  ctx.moveTo(x - size, y);
-  ctx.lineTo(x + size, y);
-  ctx.moveTo(x, y - size);
-  ctx.lineTo(x, y + size);
+  ctx.moveTo(center.x - size, center.y);
+  ctx.lineTo(center.x + size, center.y);
+  ctx.moveTo(center.x, center.y - size);
+  ctx.lineTo(center.x, center.y + size);
   ctx.stroke();
 }
 
 /**
- * Draw a straight line between two points.
+ * Draw a straight line between two screen points.
  * Modifies `ctx.strokeStyle`, `ctx.lineWidth`, `ctx.globalAlpha` on exit.
  *
  * @param ctx - target canvas 2D context
- * @param fromX - start point X (screen pixels)
- * @param fromY - start point Y (screen pixels)
- * @param toX   - end point X (screen pixels)
- * @param toY   - end point Y (screen pixels)
+ * @param from - start point (screen pixels)
+ * @param to   - end point (screen pixels)
  * @param color - CSS stroke color
  * @param alpha - line opacity (default 0.5)
  */
 export function drawPointerLine(
   ctx: CanvasRenderingContext2D,
-  fromX: number,
-  fromY: number,
-  toX: number,
-  toY: number,
+  from: Point,
+  to: Point,
   color: string,
   alpha = 0.5,
 ): void {
@@ -97,7 +91,7 @@ export function drawPointerLine(
   ctx.lineWidth = 1.5;
   ctx.globalAlpha = alpha;
   ctx.beginPath();
-  ctx.moveTo(fromX, fromY);
-  ctx.lineTo(toX, toY);
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
   ctx.stroke();
 }

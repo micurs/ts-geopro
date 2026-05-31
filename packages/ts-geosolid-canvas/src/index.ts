@@ -22,9 +22,11 @@ export { Translate2D, type Translate2DProps } from './translate-2d.tsx';
 
 // Selection components
 export { Select2D, type Select2DProps } from './select-2d.tsx';
+export type { BoundingBox } from './types.ts';
 export {
   selectionContext,
-  type BoundingBox,
+  useTransformHandler,
+  type SelectionCommit,
   type SelectionContextValue,
 } from './canvas/selection.ts';
 

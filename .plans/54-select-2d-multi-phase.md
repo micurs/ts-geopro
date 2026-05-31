@@ -137,6 +137,8 @@ Implemented in 5 phases, each producing a PR.
 - Different corners scale asymmetrically (x, y, or both)
 - Apply scale: `compose(scaleTx, rotateTx, translateTx, vp.transform)`
 - With Shift key: uniform scale (same factor for x and y)
+- While scaling we want to see the original bound-box using a continuous line of
+  the same color of the bound-box but with 50% opacity.
 - update readme.md and version for `ts-geosolid-canvas` with new rotation
   feature
 

@@ -1,47 +1,38 @@
-# Task State — Phase 4 (Rotation Drag)
+# Task State — Phase 4 (Scale + Rotation)
 
 ## Goal
-Add rotation drag to `Select2D` — drag the top-center rotation handle to rotate children around the bounding box center.
+Frame-based scale resize for Select2D with live visual feedback, correct rotation pivot under Y-negated render.
 
 ## Decisions
-- **Rotated polygon bounding box**: replaced axis-aligned `strokeRect` with polygon drawn via `moveTo`/`lineTo`/`closePath`, so the selection frame rotates with children.
-- **Point-in-polygon hit-test**: box hover/drag detection uses `pointInConvexPolygon` instead of axis-aligned bounds.
-- **Rotation handle edge**: attached to world-maxY edge (screenCorners[3]→[2]), outward normal computed via dot product with polygon center — handle rotates with box.
-- **Rotate-before-translate compose order**: `compose(translateTx, toCenter, rotZ, fromCenter, parent)` so rotation center is unionBounds center regardless of dragDelta.
-- **Corners numbering**: screenCorners[0]=world(minX-p, minY-p) → screen bottom-left after Y-negation; screenCorners[3]=world(minX-p, maxY+p) → screen top-left.
+- **Rotation is virtual**: stays in `childViewport` transform, not committed to children.
+- **Axis-aligned scale + center rotation**: scale factors computed in un-rotated box space via screen→world through `compose(rotationAround(angle, cx, cy), baseTx)`. The rotation is applied around the ORIGINAL box center during drag (via `rotationAround`), so box stays rectangular and dragged corner follows the mouse exactly. On commit, `scaleCommitTranslation` compensates for the new center.
+- **Y-flip in rotationAround**: `T(-px, py)·Rz·T(px, -py)` instead of naive `T(-px,-py)·Rz·T(px,py)`. Without this, the rendered rotation pivoted Y-reflected (e.g. box appeared to rotate one height above its center).
+- **2-point numeric solve** for commit translation: samples the commit render pipeline at 3 points (0, e₁, e₂) and solves the affine system for the (dx, dy) that pins the pivot where the drag placed it.
+- **Padding is purely visual, never scaled**: scale factors + commit use the UNPADDED child box. The selection outline + handles render the unpadded *scaled* corners through `M`, then add CONSTANT screen-space padding (`p / scaleFactor`) along the box's rotated local axes. Padding must NOT pass through the childViewport transform `M` — otherwise `Sax` scales it and the handle drifts off the cursor as the box resizes.
+- **Delta-based scale factors**: `nSx = capturedScale + worldDelta / lc` where `worldDelta` = mouse movement since pointerdown (through `axisTx`, which excludes `Sax`). Absolute `worldMouse` through `axisTx` is wrong once `scaleDelta ≠ [1,1]` because the render includes `Sax` but `axisTx` doesn't (Sax-sandwich distortion). The relative delta cancels both the distortion and the constant padding offset.
 
 ## Changed Files
 
 ### `packages/ts-geosolid-canvas/src/select-2d.tsx`
-- Added `pointInConvexPolygon()` helper
-- Added `rotationAngle` signal, `rotating` flag, `rotInitAngle` tracking
-- `onPointerDown`: handle hit i===4 starts rotation, records screen center → pointer angle
-- `onPointerMove`: during rotation, computes angle delta → updates `rotationAngle`
-- `onPointerUp`: clears rotation mode
-- `childViewport`: composes `toCenter, rotZ, fromCenter` around `unionBounds` center, then `translateTx`
-- Draw effect: polygon (moveTo/lineTo) + connector line to rotated top edge + handles at rotated corners
-- `selRefs.positions[0-3]` = rotated screen corners, `[4]` = rotation handle above outward normal
-- Removed `sMinX`/`sMinY`/`sMaxX`/`sMaxY` from `SelectionRefs`
-- `createPointerMoveHandler` uses polygon hit-test
-- Import: added `Rotation`
+- Added `rotationAround(angle, px, py)` — Y-flip fix so pivot is a true fixed point under transposed+Y-negated render
+- Added `applyWorldStandard(T, x, y)` — apply transform using gl-matrix column-major convention
+- Added `buildScaleChildTransform(baseTx, angle, cx, cy, pivotAxis, sx, sy)` — axis-aligned scale + center rotation + screen-space pin (exported for testing)
+- Added `scaleCommitTranslation(baseTx, angle, cx, cy, box, pivotAxis, sx, sy)` — 2-point solve for release-jump elimination (exported for testing)
+- Replaced frame-based scale (`Point.relative(Frame)`) with axis-aligned box space: `scalePivotAxis`, `scaleLocalCorner`, `scaleCenter`, `scaleBox`
+- `childViewport` memo: uses `buildScaleChildTransform` during scale, `rotationAround` for rotation-only
+- `onPointerDown`: captures axis-aligned corners + pivot + center, no Frame construction
+- `onPointerMove`: un-rotates mouse through `rotationAround` to compute axis-aligned scale factors
+- `onPointerUp`: dispatches `scale` commit, then if angle≠0 dispatches `translate` commit via `scaleCommitTranslation`
+- Imports: removed `Frame`, `Point`, `Rotation`, `Vector`
 
 ### `packages/ts-geosolid-canvas/tests/select-2d.test.tsx`
-- Added closePath to mock CanvasRenderingContext2D
-- 2 new tests: rotation starts on handle hit, rotation not started on corner handle
-- Updated existing tests: check beginPath/stroke instead of strokeRect; check moveTo for union bounds
-
-### `packages/ts-geosolid-canvas/readme.md`
-- Updated Select2D description with rotation drag
-- Updated Features list
-- Bumped version 0.3.0 → 0.4.0
-
-### `packages/ts-geosolid-canvas/package.json`
-- Bumped version 0.3.0 → 0.4.0
+- Removed old frame-based tests (axis corners relative to Frame, scale factors via Frame)
+- Added "rotated scale: drag invariants + no release jump" suite: 36 parameterized tests (2 viewports × 4 angles × 4 corners) + 1 identity test
+- Each test asserts: rectangularity, pinned pivot, dragged corner follows mouse, no release jump (committed pivot matches drag pivot to sub-0.1px)
+- Imports: added `buildScaleChildTransform`, `scaleCommitTranslation`; removed `Frame`, `Point`, `Rotation`, `Vector`
 
 ## Tests
-All 30 pass. New rotation tests:
-- **starts rotation drag on rotation handle hit** — pointerdown at rotation handle → setPointerCapture(1)
-- **does not start rotation drag on corner handle hit** — pointerdown at corner handle → no capture
+68 pass (45 in select-2d). Scale invariants suite: 36 parameterized + 1 identity.
 
 ## Unresolved Issues
 - None

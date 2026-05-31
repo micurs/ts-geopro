@@ -1,9 +1,11 @@
+import { createSignal, createEffect, useContext } from 'solid-js';
 import type { Component } from 'solid-js';
 import type { Viewport } from './canvas/types.ts';
-import type { Point } from '@micurs/ts-geopro';
+import { Point } from '@micurs/ts-geopro';
 import { getScaledWidth } from './canvas/utils.ts';
 import { buildCanvasComponent } from './build-canvas-component.tsx';
-import { useShapeBoundsRegistration } from './canvas/selection.ts';
+import { selectionContext, useShapeBoundsRegistration, useTransformHandler } from './canvas/selection.ts';
+import type { BoundingBox } from './types.ts';
 import type { DrawableProps } from './types.ts';
 
 export interface EllipseProps extends DrawableProps {
@@ -46,26 +48,60 @@ export const drawEllipse = (vp: Viewport, ellipse: EllipseProps) => {
 const EllipseBase = buildCanvasComponent<EllipseProps>(drawEllipse);
 
 /**
- * SolidJS component that renders an ellipse on the canvas
- *
- * @example
- * ```tsx
- * <Ellipse
- *   id="my-ellipse"
- *   center={Point.from(0, 0, 0)}
- *   width={100}
- *   height={60}
- *   color="#ff6600"
- *   strokeWidth={2}
- * />
- * ```
+ * SolidJS component that renders an ellipse on the canvas.
+ * When placed inside a Select2D, automatically registers a transform
+ * handler so committed translate/scale operations update the shape
+ * in-place.
  */
 export const Ellipse: Component<EllipseProps> = (props) => {
-  useShapeBoundsRegistration(props.id, () => ({
-    minX: props.center.x - props.width / 2,
-    minY: props.center.y - props.height / 2,
-    maxX: props.center.x + props.width / 2,
-    maxY: props.center.y + props.height / 2,
-  }));
-  return EllipseBase(props);
+  const selCtx = useContext(selectionContext);
+  const [center, setCenter] = createSignal(props.center);
+  const [w, setW] = createSignal(props.width);
+  const [h, setH] = createSignal(props.height);
+
+  // Sync external prop changes into internal signals
+  createEffect(() => setCenter(props.center));
+  createEffect(() => setW(props.width));
+  createEffect(() => setH(props.height));
+
+  const getBounds = (): BoundingBox => {
+    const c = center();
+    return {
+      min: Point.from(c.x - w() / 2, c.y - h() / 2, 0),
+      max: Point.from(c.x + w() / 2, c.y + h() / 2, 0),
+    };
+  };
+
+  useShapeBoundsRegistration(props.id, getBounds);
+
+  useTransformHandler(props.id, (commit) => {
+    if (commit.type === 'translate') {
+      setCenter((p) => p.add(commit.delta));
+    } else if (commit.type === 'scale') {
+      const { scale, pivot } = commit;
+      setCenter((p) =>
+        Point.from(
+          pivot.x + scale.x * (p.x - pivot.x),
+          pivot.y + scale.y * (p.y - pivot.y),
+          0,
+        ),
+      );
+      setW((v) => v * Math.abs(scale.x));
+      setH((v) => v * Math.abs(scale.y));
+    }
+    // Synchronous bounds re-registration so Select2D sees the
+    // updated geometry before the next interaction starts.
+    selCtx.registerBounds(props.id, getBounds());
+  });
+
+  const merged = new Proxy(props, {
+    get(target, key): unknown {
+      if (key === 'center') { return center(); }
+      if (key === 'width') { return w(); }
+      if (key === 'height') { return h(); }
+      return (target as unknown as Record<string | symbol, unknown>)[key];
+    },
+  });
+
+  return EllipseBase(merged);
 };
