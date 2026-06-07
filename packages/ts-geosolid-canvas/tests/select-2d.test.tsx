@@ -34,6 +34,11 @@ function emit(canvas: HTMLCanvasElement, handler: (e: PointerEvent) => void, eve
 const createMockViewport = (): Viewport => {
   const strokeStyleLog: string[] = [];
   let _strokeStyle = '';
+  const sharedAddEventListener = vi.fn();
+  const parentEl = {
+    addEventListener: sharedAddEventListener,
+    removeEventListener: vi.fn(),
+  };
   const ctx = {
     save: vi.fn(),
     restore: vi.fn(),
@@ -56,7 +61,8 @@ const createMockViewport = (): Viewport => {
     canvas: {
       width: 800,
       height: 600,
-      addEventListener: vi.fn(),
+      parentElement: parentEl,
+      addEventListener: sharedAddEventListener,
       removeEventListener: vi.fn(),
       getBoundingClientRect: () => ({ left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600 }),
     },
@@ -97,7 +103,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={4}>
+          <Select2D editable padding={4}>
             <RegisterChild />
           </Select2D>
         </canvasContext.Provider>
@@ -121,7 +127,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={4}>
+          <Select2D editable padding={4}>
             <div />
           </Select2D>
         </canvasContext.Provider>
@@ -154,7 +160,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={0}>
+          <Select2D editable padding={0}>
             <RegisterA />
             <RegisterB />
           </Select2D>
@@ -192,7 +198,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={4}>
+          <Select2D editable padding={4}>
             <RegisterBounds />
           </Select2D>
         </canvasContext.Provider>
@@ -283,7 +289,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={4}>
+          <Select2D editable padding={4}>
             <RegisterBounds />
           </Select2D>
         </canvasContext.Provider>
@@ -350,7 +356,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={4}>
+          <Select2D editable padding={4}>
             <RegisterBounds />
           </Select2D>
         </canvasContext.Provider>
@@ -401,7 +407,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={4}>
+          <Select2D editable padding={4}>
             <RegisterBounds />
           </Select2D>
         </canvasContext.Provider>
@@ -469,7 +475,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={0}>
+          <Select2D editable padding={0}>
             <RegisterCircle />
           </Select2D>
         </canvasContext.Provider>
@@ -550,7 +556,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={0}>
+          <Select2D editable padding={0}>
             <RegisterCircle />
           </Select2D>
         </canvasContext.Provider>
@@ -649,7 +655,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={0}>
+          <Select2D editable padding={0}>
             <RegisterBounds />
           </Select2D>
         </canvasContext.Provider>
@@ -711,7 +717,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={0}>
+          <Select2D editable padding={0}>
             <RegisterCircle />
           </Select2D>
         </canvasContext.Provider>
@@ -790,7 +796,7 @@ describe('Select2D component', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={0}>
+          <Select2D editable padding={0}>
             <RegisterBounds />
           </Select2D>
         </canvasContext.Provider>
@@ -851,7 +857,7 @@ describe('Select2D rotation snapping', () => {
     const dispose = render(
       () => (
         <canvasContext.Provider value={contextStub(vp)}>
-          <Select2D padding={4} snapRotation={snapRotation}>
+          <Select2D editable padding={4} snapRotation={snapRotation}>
             <RegisterBounds />
           </Select2D>
         </canvasContext.Provider>
@@ -950,6 +956,98 @@ describe('Select2D rotation snapping', () => {
   });
 });
 
+describe('Select2D editable prop', () => {
+  function createSetup(editable: boolean): { vp: () => Viewport; container: HTMLDivElement; dispose: () => void } {
+    const [vp, _setVp] = createSignal<Viewport>(createMockViewport());
+    const RegisterBounds = () => {
+      const selCtx = useContext(selectionContext);
+      selCtx.registerBounds('shape', { min: Point.from(0, 0, 0), max: Point.from(100, 60, 0) });
+      return null;
+    };
+    const container = document.createElement('div');
+    const dispose = render(
+      () => (
+        <canvasContext.Provider value={contextStub(vp)}>
+          <Select2D editable={editable} padding={4}>
+            <RegisterBounds />
+          </Select2D>
+        </canvasContext.Provider>
+      ),
+      container,
+    );
+    return { vp, container, dispose };
+  }
+
+  test('editable=false draws no selection UI', async () => {
+    const { vp, dispose } = createSetup(false);
+    await waitForEffects();
+    const ctx = vp()!.ctx;
+    expect(ctx.setLineDash).not.toHaveBeenCalled();
+    expect(ctx.beginPath).not.toHaveBeenCalled();
+    expect(ctx.stroke).not.toHaveBeenCalled();
+    dispose();
+  });
+
+  test('editable=true draws selection UI', async () => {
+    const { vp, dispose } = createSetup(true);
+    await waitForEffects();
+    const ctx = vp()!.ctx;
+    expect(ctx.setLineDash).toHaveBeenCalled();
+    dispose();
+  });
+
+  test('editable=false prevents drag', async () => {
+    const { vp, dispose } = createSetup(false);
+    await waitForEffects();
+    const canvas = vp()!.ctx.canvas;
+    const addCalls = (canvas.addEventListener as ReturnType<typeof vi.fn>).mock.calls;
+    const pointerDown = addCalls.find((c: unknown[]) => c[0] === 'pointerdown')?.[1] as (e: PointerEvent) => void;
+
+    expect(pointerDown).toBeUndefined();
+    dispose();
+  });
+
+  test('editable=true allows drag', async () => {
+    const { vp, dispose } = createSetup(true);
+    await waitForEffects();
+    const canvas = vp()!.ctx.canvas;
+    const addCalls = (canvas.addEventListener as ReturnType<typeof vi.fn>).mock.calls;
+    const pointerDown = addCalls.find((c: unknown[]) => c[0] === 'pointerdown')?.[1] as (e: PointerEvent) => void;
+
+    const setPointerCapture = vi.fn();
+    Object.defineProperty(canvas, 'setPointerCapture', { value: setPointerCapture });
+
+    emit(canvas, pointerDown,
+      createPointerEvent('pointerdown', { clientX: 50, clientY: 0, pointerId: 1 }),
+    );
+    await waitForEffects();
+    expect(setPointerCapture).toHaveBeenCalled();
+    dispose();
+  });
+
+  test('Select2D registers pointer handlers', async () => {
+    const [vp, _setVp] = createSignal<Viewport>(createMockViewport());
+
+    const container = document.createElement('div');
+    const dispose = render(
+      () => (
+        <canvasContext.Provider value={contextStub(vp)}>
+          <Select2D editable padding={4} />
+        </canvasContext.Provider>
+      ),
+      container,
+    );
+    await waitForEffects();
+
+    const canvas = vp()!.ctx.canvas;
+    const addCalls = (canvas.addEventListener as ReturnType<typeof vi.fn>).mock.calls;
+    expect(addCalls.find((c: unknown[]) => c[0] === 'pointerdown')).toBeDefined();
+    expect(addCalls.find((c: unknown[]) => c[0] === 'pointermove')).toBeDefined();
+    expect(addCalls.find((c: unknown[]) => c[0] === 'pointerup')).toBeDefined();
+
+    dispose();
+  });
+});
 
 //Verified-by-construction tests for the rotated-scale interaction.
 //

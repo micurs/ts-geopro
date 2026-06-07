@@ -1,12 +1,14 @@
-import { createSignal, createEffect, useContext } from 'solid-js';
+import { createSignal, createEffect, createRenderEffect, untrack, useContext } from 'solid-js';
 import type { Component } from 'solid-js';
 import type { Viewport } from './canvas/types.ts';
-import { Point } from '@micurs/ts-geopro';
+import { Point, Transform } from '@micurs/ts-geopro';
 import { getScaledWidth } from './canvas/utils.ts';
-import { buildCanvasComponent } from './build-canvas-component.tsx';
+import { drawHandles } from './canvas/drawing.ts';
+import { worldToScreenPoint } from './canvas/geo-utils.ts';
+import { canvasContext } from './canvas/canvas-context.ts';
 import { selectionContext, useShapeBoundsRegistration, useTransformHandler } from './canvas/selection.ts';
-import type { BoundingBox } from './types.ts';
-import type { DrawableProps } from './types.ts';
+import type { BoundingBox, DrawableProps } from './types.ts';
+import { useEditableDrag } from './use-editable-drag.ts';
 
 export interface EllipseProps extends DrawableProps {
   center: Point;
@@ -45,21 +47,13 @@ export const drawEllipse = (vp: Viewport, ellipse: EllipseProps) => {
   ctx.stroke();
 };
 
-const EllipseBase = buildCanvasComponent<EllipseProps>(drawEllipse);
-
-/**
- * SolidJS component that renders an ellipse on the canvas.
- * When placed inside a Select2D, automatically registers a transform
- * handler so committed translate/scale operations update the shape
- * in-place.
- */
 export const Ellipse: Component<EllipseProps> = (props) => {
+  const canvasCtx = useContext(canvasContext);
   const selCtx = useContext(selectionContext);
   const [center, setCenter] = createSignal(props.center);
   const [w, setW] = createSignal(props.width);
   const [h, setH] = createSignal(props.height);
 
-  // Sync external prop changes into internal signals
   createEffect(() => setCenter(props.center));
   createEffect(() => setW(props.width));
   createEffect(() => setH(props.height));
@@ -89,19 +83,80 @@ export const Ellipse: Component<EllipseProps> = (props) => {
       setW((v) => v * Math.abs(scale.x));
       setH((v) => v * Math.abs(scale.y));
     }
-    // Synchronous bounds re-registration so Select2D sees the
-    // updated geometry before the next interaction starts.
     selCtx.registerBounds(props.id, getBounds());
   });
 
-  const merged = new Proxy(props, {
-    get(target, key): unknown {
-      if (key === 'center') { return center(); }
-      if (key === 'width') { return w(); }
-      if (key === 'height') { return h(); }
-      return (target as unknown as Record<string | symbol, unknown>)[key];
+  function getHandleWorld(): Point[] {
+    const c = center();
+    const rx = w() / 2;
+    const ry = h() / 2;
+    return [
+      Point.from(c.x + rx, c.y, 0),
+      Point.from(c.x, c.y + ry, 0),
+    ];
+  }
+
+  const drag = useEditableDrag(
+    props,
+    () => canvasCtx?.vp()?.ctx.canvas,
+    getHandleWorld,
+    () => {
+      const vp = canvasCtx?.vp();
+      return vp?.transform ?? Transform.identity();
     },
+    (index, worldDelta, startWorld) => {
+      if (index === 0) {
+        const newRx = Math.max(1, (startWorld.x + worldDelta.x) - center().x);
+        setW(newRx * 2);
+      } else {
+        const newRy = Math.max(1, (startWorld.y + worldDelta.y) - center().y);
+        setH(newRy * 2);
+      }
+    },
+  );
+
+  // Single drawing effect: base shape + optional handles.
+  createRenderEffect(() => {
+    canvasCtx?.redrawVersion();
+    const vp = canvasCtx?.vp();
+    if (!vp) {
+      return;
+    }
+
+    vp.ctx.save();
+    vp.ctx.setTransform(
+      vp.transform.direct(0, 0),
+      -vp.transform.direct(1, 0),
+      vp.transform.direct(0, 1),
+      -vp.transform.direct(1, 1),
+      vp.transform.direct(3, 0),
+      vp.transform.direct(3, 1),
+    );
+    drawEllipse(vp, {
+      ...props,
+      center: center(),
+      width: w(),
+      height: h(),
+    });
+    vp.ctx.restore();
+
+    if (props.editable) {
+      vp.ctx.save();
+      vp.ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+      drawHandles(
+        vp.ctx,
+        getHandleWorld().map((h) => worldToScreenPoint(vp.transform, h)),
+        drag.hoveredIndex,
+      );
+
+      vp.ctx.restore();
+    }
+
+    if (!untrack(() => canvasCtx?.rAFWillClear() ?? false)) {
+      canvasCtx?.requestRedraw();
+    }
   });
 
-  return EllipseBase(merged);
+  return null;
 };

@@ -56,6 +56,22 @@ export function screenToWorldPoint(M: Transform, p: Point): Point {
 }
 
 /**
+ * Compute the mouse position relative to the canvas element as a Point.
+ */
+export function screenPoint(e: PointerEvent, canvas: HTMLCanvasElement): Point {
+  const rect = canvas.getBoundingClientRect();
+  return Point.from(e.clientX - rect.left, e.clientY - rect.top, 0);
+}
+
+/**
+ * Convert a screen-space delta Vector to a world-space Vector using the
+ * viewport scale factor. Y is negated because screen Y-down maps to world Y-up.
+ */
+export function screenDeltaToWorld(sf: number, dv: Vector): Vector {
+  return Vector.from(dv.x * sf, -dv.y * sf, 0);
+}
+
+/**
  * Rotation by `angle` around the world point `pivot`, as a Transform that is
  * correct under the renderer's transposed + Y-negated convention
  * (`worldToScreenPoint` / `setTransform`).
@@ -264,9 +280,62 @@ export function pointInConvexPolygon(
     const a = corners[i]!;
     const b = corners[j]!;
     const cross = Vector.fromPoints(a, b).crossProduct(Vector.fromPoints(a, p)).z;
-    if (cross > 0) pos = true;
-    if (cross < 0) neg = true;
-    if (pos && neg) return false;
+    if (cross > 0) {
+      pos = true;
+    }
+    if (cross < 0) {
+      neg = true;
+    }
+    if (pos && neg) {
+      return false;
+    }
   }
   return true;
+}
+
+/**
+ * Test a screen-space point against handle positions. Returns the index of
+ * the first handle within `hitRadius` pixels, or -1 if none.
+ */
+export function hitTestHandle(
+  positions: Point[],
+  sp: Point,
+  hitRadius = 7,
+): number {
+  const rSq = hitRadius * hitRadius;
+  return positions.findIndex((h) => {
+    const dx = sp.x - h.x;
+    const dy = sp.y - h.y;
+    return dx * dx + dy * dy < rSq;
+  });
+}
+
+/**
+ * Register three pointer-event listeners on a canvas with `{ capture: true }`.
+ * Call the returned function to remove them.
+ */
+export function captureMouseEvents(
+  canvas: HTMLCanvasElement,
+  onPointerDown: (e: PointerEvent) => void,
+  onPointerMove: (e: PointerEvent) => void,
+  onPointerUp: (e: PointerEvent) => void,
+): () => void {
+  canvas.addEventListener("pointerdown", onPointerDown, { capture: true });
+  canvas.addEventListener("pointermove", onPointerMove, { capture: true });
+  canvas.addEventListener("pointerup", onPointerUp, { capture: true });
+  return () => releaseMouseEvents(canvas, onPointerDown, onPointerMove, onPointerUp);
+}
+
+/**
+ * Remove three pointer-event listeners previously added via `captureMouseEvents`.
+ */
+export function releaseMouseEvents(
+  canvas: HTMLCanvasElement,
+  onPointerDown: (e: PointerEvent) => void,
+  onPointerMove: (e: PointerEvent) => void,
+  onPointerUp: (e: PointerEvent) => void,
+): void {
+  canvas.removeEventListener("pointerdown", onPointerDown, { capture: true });
+  canvas.removeEventListener("pointermove", onPointerMove, { capture: true });
+  canvas.removeEventListener("pointerup", onPointerUp, { capture: true });
 }

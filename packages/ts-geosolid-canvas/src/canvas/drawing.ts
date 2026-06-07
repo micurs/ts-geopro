@@ -115,25 +115,37 @@ export function drawBox(ctx: CanvasRenderingContext2D, corners: CornerQuad): voi
   ctx.stroke();
 }
 
+export interface Handle {
+  ctx: CanvasRenderingContext2D;
+  position: Point;
+  selected: boolean;
+}
+
 /**
  * Draw a selection handle as a filled-and-stroked circle.
- *
- * @param ctx  - target canvas 2D context (identity transform)
- * @param pos  - handle center in screen pixels
- * @param r    - handle radius in screen pixels
- * @param fill - CSS fill color for the handle circle
+ * Normal state: radius 5, white fill. Selected state: radius 7, yellow fill.
  */
-export function drawHandle(
+export function drawHandle(handle: Handle): void {
+  const r = handle.selected ? 7 : 5;
+  const fill = handle.selected ? "#ffcc00" : "#ffffff";
+  handle.ctx.beginPath();
+  handle.ctx.arc(handle.position.x, handle.position.y, r, 0, 2 * Math.PI);
+  handle.ctx.fillStyle = fill;
+  handle.ctx.strokeStyle = "#333333";
+  handle.ctx.lineWidth = 1.5;
+  handle.ctx.fill();
+  handle.ctx.stroke();
+}
+
+/**
+ * Draw all selection handles.
+ */
+export function drawHandles(
   ctx: CanvasRenderingContext2D,
-  pos: Point,
-  r: number,
-  fill: string,
+  positions: Point[],
+  hoveredIndex: number,
 ): void {
-  ctx.beginPath();
-  ctx.arc(pos.x, pos.y, r, 0, 2 * Math.PI);
-  ctx.fillStyle = fill;
-  ctx.strokeStyle = "#333333";
-  ctx.lineWidth = 1.5;
-  ctx.fill();
-  ctx.stroke();
+  positions.forEach((h, i) => {
+    drawHandle({ ctx, position: h, selected: i === hoveredIndex });
+  });
 }

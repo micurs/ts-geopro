@@ -11,20 +11,24 @@ import type { Component, JSX } from "solid-js";
 import { canvasContext } from "./canvas/canvas-context.ts";
 import { selectionContext } from "./canvas/selection.ts";
 import {
+  type CornerQuad,
   drawBox,
   drawCenterCrosshair,
   drawHandle,
   drawPointerLine,
   drawRotationArc,
-  type CornerQuad,
 } from "./canvas/drawing.ts";
 import type { BoundingBox } from "./types.ts";
 import type { SelectionCommit } from "./canvas/selection.ts";
 import {
   applyWorldStandard,
+  captureMouseEvents,
+  hitTestHandle,
   pointInConvexPolygon,
   rotationAround,
   scaleCommitTranslation,
+  screenDeltaToWorld,
+  screenPoint,
   screenToWorldPoint,
   worldToScreenPoint,
 } from "./canvas/geo-utils.ts";
@@ -32,12 +36,10 @@ import { compose, Point, Transform, Vector } from "@micurs/ts-geopro";
 
 export interface Select2DProps {
   children: JSX.Element;
+  /** When false, the selection UI is disabled and children render without selection transforms (default: false) */
+  editable?: boolean;
   /** Selection dashed border color (default: '#00aaff') */
   color?: string;
-  /** Handle fill color (default: '#ffffff') */
-  handleColor?: string;
-  /** Handle fill color when hovered (default: '#ffdd00') */
-  handleHighlightColor?: string;
   /** Padding around union bounds in world units (default: 6) */
   padding?: number;
   /** Snap rotation to 90-degree increments (default: false) */
@@ -63,8 +65,6 @@ interface Select2DState {
 }
 
 const DEFAULT_COLOR = "#00aaff";
-const DEFAULT_HANDLE_COLOR = "#ffffff";
-const DEFAULT_HANDLE_HIGHLIGHT_COLOR = "#ffdd00";
 const DEFAULT_PADDING = 6;
 const DEFAULT_SNAP_COLOR = "#ff8c00";
 
@@ -76,19 +76,18 @@ const DEFAULT_SNAP_COLOR = "#ff8c00";
  * @returns         - `[snappedAngle, isSnapped]` where `snappedAngle` is the
  *                    snapped angle, and `isSnapped` is true when within threshold.
  */
-function snapToQuadrant(angle: number, threshold = 3 * Math.PI / 180): [number, boolean] {
+function snapToQuadrant(
+  angle: number,
+  threshold = 3 * Math.PI / 180,
+): [number, boolean] {
   const quadrant = Math.round(angle / (Math.PI / 2));
   const snapped = quadrant * (Math.PI / 2);
   const diff = angle - snapped;
   // Normalize diff to [-π/4, π/4] for threshold comparison
   const normDiff = diff - Math.round(diff / (Math.PI / 2)) * (Math.PI / 2);
-  return Math.abs(normDiff) <= threshold
-    ? [snapped, true]
-    : [angle, false];
+  return Math.abs(normDiff) <= threshold ? [snapped, true] : [angle, false];
 }
 
-const HANDLE_RADIUS = 5;
-const HANDLE_HIT_RADIUS = 7;
 const ROTATION_HANDLE_OFFSET = 20;
 
 /**
@@ -190,10 +189,9 @@ interface SelectionRefs {
  * Create a `pointermove` handler that hit-tests against the selection
  * handles and the selection box interior.
  *
- * Handles are tested by Euclidean distance (`HANDLE_HIT_RADIUS`). The box
- * interior uses `pointInConvexPolygon` on the four corner screen positions.
- * Results are written into Solid signals so the draw effect can update
- * hover visuals.
+ * The box interior uses `pointInConvexPolygon` on the four corner screen
+ * positions. Results are written into Solid signals so the draw effect can
+ * update hover visuals.
  *
  * The `sel` ref is mutated each frame by the draw effect (the `positions`
  * array is replaced in-place), so this handler always reads the latest
@@ -217,19 +215,9 @@ function createPointerMoveHandler(
 ): (e: PointerEvent) => void {
   return (e: PointerEvent) => {
     const canvas = e.currentTarget as HTMLCanvasElement;
-    const rect = canvas.getBoundingClientRect();
-    const sp = Point.from(
-      e.clientX - rect.left,
-      e.clientY - rect.top,
-      0,
-    );
+    const sp = screenPoint(e, canvas);
 
-    const hitRadiusSq = HANDLE_HIT_RADIUS * HANDLE_HIT_RADIUS;
-    const found = sel.positions.findIndex((h) => {
-      const dx = sp.x - h.x;
-      const dy = sp.y - h.y;
-      return dx * dx + dy * dy < hitRadiusSq;
-    });
+    const found = hitTestHandle(sel.positions, sp);
     setHoveredHandle(found);
 
     setHoveredBox(
@@ -329,9 +317,6 @@ export const Select2D: Component<Select2DProps> = (props) => {
 
   const padding = () => props.padding ?? DEFAULT_PADDING;
   const color = () => props.color ?? DEFAULT_COLOR;
-  const handleColor = () => props.handleColor ?? DEFAULT_HANDLE_COLOR;
-  const handleHighlightColor = () =>
-    props.handleHighlightColor ?? DEFAULT_HANDLE_HIGHLIGHT_COLOR;
 
   const [state, setState] = createStore<Select2DState>({
     hoveredBox: false,
@@ -381,6 +366,9 @@ export const Select2D: Component<Select2DProps> = (props) => {
     const vp = ctx?.vp();
     if (!vp) {
       return undefined;
+    }
+    if (props.editable !== true) {
+      return vp;
     }
     const d = state.dragDelta;
     const angle = state.rotationAngle;
@@ -441,6 +429,13 @@ export const Select2D: Component<Select2DProps> = (props) => {
     const rotArcDelta = state.arcDelta;
 
     if (!vp) {
+      return;
+    }
+    if (props.editable !== true) {
+      selRefs.positions = [];
+      if (!untrack(() => ctx?.rAFWillClear() ?? false)) {
+        ctx?.requestRedraw();
+      }
       return;
     }
     if (!box) {
@@ -563,18 +558,25 @@ export const Select2D: Component<Select2DProps> = (props) => {
     // Line and arc from center to mouse cursor while rotating
     if (rotatingNow && rotPtr) {
       drawPointerLine(vp.ctx, center, rotPtr, snapped ? snapCol : col);
-      drawRotationArc(vp.ctx, center, 50, initAngle, rotArcDelta, snapped ? snapCol : col);
+      drawRotationArc(
+        vp.ctx,
+        center,
+        50,
+        initAngle,
+        rotArcDelta,
+        snapped ? snapCol : col,
+      );
     }
 
     vp.ctx.globalAlpha = 1;
     vp.ctx.setLineDash([]);
 
     selRefs.positions.forEach((pos, i) => {
-      const radius = hovHandle === i || (rotatingNow && i === 4)
-        ? HANDLE_RADIUS + 2
-        : HANDLE_RADIUS;
-      drawHandle(vp.ctx, pos, radius,
-        i === hovHandle ? handleHighlightColor() : handleColor());
+      drawHandle({
+        ctx: vp.ctx,
+        position: pos,
+        selected: i === hovHandle || (rotatingNow && i === 4),
+      });
     });
 
     vp.ctx.restore();
@@ -585,6 +587,10 @@ export const Select2D: Component<Select2DProps> = (props) => {
   });
 
   createEffect(() => {
+    if (props.editable !== true) {
+      return;
+    }
+
     const vp = childViewport();
     const canvas = vp?.ctx.canvas;
     if (!canvas) {
@@ -593,73 +599,62 @@ export const Select2D: Component<Select2DProps> = (props) => {
 
     const hoverHandler = createPointerMoveHandler(
       selRefs,
-      (v: number) => setState('hoveredHandle', v),
-      (v: boolean) => setState('hoveredBox', v),
+      (v: number) => setState("hoveredHandle", v),
+      (v: boolean) => setState("hoveredBox", v),
     );
 
     const onPointerDown = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const sp = Point.from(e.clientX - rect.left, e.clientY - rect.top, 0);
+      const sp = screenPoint(e, canvas);
+      const found = hitTestHandle(selRefs.positions, sp);
+      if (found === 4) {
+        e.stopImmediatePropagation();
+        const p0 = selRefs.positions[0]!;
+        const p2 = selRefs.positions[2]!;
+        const mid = p0.add(Vector.fromPoints(p2, p0).scale(0.5));
+        const angle = Math.atan2(sp.y - mid.y, sp.x - mid.x);
+        setState({
+          rotInitAngle: angle,
+          lastMouseAngle: angle,
+          arcDelta: 0,
+          rotationBase: untrack(() => state.rotationAngle),
+          isRotating: true,
+        });
+        setIsRotationSnapped(false);
+        canvas.setPointerCapture(e.pointerId);
+        return;
+      }
 
-      for (let i = 0; i < selRefs.positions.length; i++) {
-        const h = selRefs.positions[i]!;
-        const d = Vector.fromPoints(h, sp);
-        if (d.lengthSquare < HANDLE_HIT_RADIUS * HANDLE_HIT_RADIUS) {
-          if (i === 4) {
-            e.stopImmediatePropagation();
-            const p0 = selRefs.positions[0]!;
-            const p2 = selRefs.positions[2]!;
-            const mid = p0.add(Vector.fromPoints(p2, p0).scale(0.5));
-            // Angle of cursor relative to rotation center (screen space)
-            const angle = Math.atan2(sp.y - mid.y, sp.x - mid.x);
-            setState({
-              rotInitAngle: angle,
-              lastMouseAngle: angle,
-              arcDelta: 0,
-              rotationBase: untrack(() => state.rotationAngle),
-              isRotating: true,
-            });
-            setIsRotationSnapped(false);
-            canvas.setPointerCapture(e.pointerId);
-          } else if (i < 4) {
-            e.stopImmediatePropagation();
-            const box = untrack(() => unionBounds());
-            if (box) {
-              // Use UNPADDED child corners for the scale pivot and factors.
-              // The selection outline's padding is purely visual — it must
-              // not affect which vertex stays fixed during resize.
-              const axisCorners: Point[] = [
-                box.min,
-                Point.from(box.max.x, box.min.y, 0),
-                box.max,
-                Point.from(box.min.x, box.max.y, 0),
-              ];
-              const opp = (i + 2) % 4;
-              const rawPivot = axisCorners[opp]!;
-              const corner = axisCorners[i]!;
-              const ctr = Point.from(
-                (box.min.x + box.max.x) / 2,
-                (box.min.y + box.max.y) / 2,
-                0,
-              );
-              scaleShiftActive = false;
-              scaleCenter = ctr;
-              scaleBox = { min: box.min, max: box.max };
-              // Corner-pivot scale (non-uniform): pivot at opposite corner.
-              scalePivot = rawPivot;
-              scaleLocalCorner = Vector.fromPoints(corner, rawPivot);
-              // Center-pivot scale (uniform / Shift): pivot at box center.
-              scaleCenterPivot = ctr;
-              scaleCenterLocalCorner = Vector.fromPoints(corner, ctr);
-              // Capture initial state for delta-based nSx/nSy.
-              capturedMouseScreen = sp;
-              capturedScale = untrack(() => scaleDelta());
-              scaling = true;
-              canvas.setPointerCapture(e.pointerId);
-            }
-          }
-          return;
+      if (found >= 0 && found < 4) {
+        e.stopImmediatePropagation();
+        const box = untrack(() => unionBounds());
+        if (box) {
+          const axisCorners: Point[] = [
+            box.min,
+            Point.from(box.max.x, box.min.y, 0),
+            box.max,
+            Point.from(box.min.x, box.max.y, 0),
+          ];
+          const opp = (found + 2) % 4;
+          const rawPivot = axisCorners[opp]!;
+          const corner = axisCorners[found]!;
+          const ctr = Point.from(
+            (box.min.x + box.max.x) / 2,
+            (box.min.y + box.max.y) / 2,
+            0,
+          );
+          scaleShiftActive = false;
+          scaleCenter = ctr;
+          scaleBox = { min: box.min, max: box.max };
+          scalePivot = rawPivot;
+          scaleLocalCorner = Vector.fromPoints(corner, rawPivot);
+          scaleCenterPivot = ctr;
+          scaleCenterLocalCorner = Vector.fromPoints(corner, ctr);
+          capturedMouseScreen = sp;
+          capturedScale = untrack(() => scaleDelta());
+          scaling = true;
+          canvas.setPointerCapture(e.pointerId);
         }
+        return;
       }
 
       if (
@@ -677,20 +672,23 @@ export const Select2D: Component<Select2DProps> = (props) => {
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      const sp = screenPoint(e, canvas);
+
       if (state.isRotating) {
         e.stopImmediatePropagation();
-        const rect = canvas.getBoundingClientRect();
-        const sx = e.clientX - rect.left;
-        const sy = e.clientY - rect.top;
         const p0 = selRefs.positions[0]!;
         const p2 = selRefs.positions[2]!;
         const midX = (p0.x + p2.x) / 2;
         const midY = (p0.y + p2.y) / 2;
-        const curAngle = Math.atan2(sy - midY, sx - midX);
+        const curAngle = Math.atan2(sp.y - midY, sp.x - midX);
         let delta = curAngle - state.lastMouseAngle;
-        if (delta > Math.PI) delta -= 2 * Math.PI;
-        if (delta < -Math.PI) delta += 2 * Math.PI;
-        setState('lastMouseAngle', curAngle);
+        if (delta > Math.PI) {
+          delta -= 2 * Math.PI;
+        }
+        if (delta < -Math.PI) {
+          delta += 2 * Math.PI;
+        }
+        setState("lastMouseAngle", curAngle);
 
         const rawAngle = state.rotationBase + curAngle - state.rotInitAngle;
         let appliedAngle = rawAngle;
@@ -700,28 +698,35 @@ export const Select2D: Component<Select2DProps> = (props) => {
           appliedAngle = active ? snapped : rawAngle;
           snappedActive = active;
         }
-        setState('rotationAngle', appliedAngle);
+        setState("rotationAngle", appliedAngle);
         setIsRotationSnapped(snappedActive);
 
         if (snappedActive) {
-          const dist = Math.hypot(sx - midX, sy - midY);
+          const dist = Math.hypot(sp.x - midX, sp.y - midY);
           const snapDelta = appliedAngle - state.rotationBase;
           const snapScreenAngle = state.rotInitAngle + snapDelta;
-          setState('rotPointerPos', Point.from(
-            midX + dist * Math.cos(snapScreenAngle),
-            midY + dist * Math.sin(snapScreenAngle),
-            0,
-          ));
+          setState(
+            "rotPointerPos",
+            Point.from(
+              midX + dist * Math.cos(snapScreenAngle),
+              midY + dist * Math.sin(snapScreenAngle),
+              0,
+            ),
+          );
         } else {
-          setState('rotPointerPos', Point.from(sx, sy, 0));
+          setState("rotPointerPos", sp);
         }
         // Always compute arcDelta from appliedAngle so visual stays in sync
         const prevArc = state.arcDelta;
         const newArc = appliedAngle - state.rotationBase;
         let diff = newArc - prevArc;
-        if (diff > Math.PI) diff -= 2 * Math.PI;
-        if (diff < -Math.PI) diff += 2 * Math.PI;
-        setState('arcDelta', prevArc + diff);
+        if (diff > Math.PI) {
+          diff -= 2 * Math.PI;
+        }
+        if (diff < -Math.PI) {
+          diff += 2 * Math.PI;
+        }
+        setState("arcDelta", prevArc + diff);
         return;
       }
 
@@ -729,9 +734,6 @@ export const Select2D: Component<Select2DProps> = (props) => {
         e.stopImmediatePropagation();
         const parentVp = ctx?.vp();
         if (parentVp) {
-          const rect = canvas.getBoundingClientRect();
-          const sx = e.clientX - rect.left;
-          const sy = e.clientY - rect.top;
           const d = state.dragDelta;
           const angle = state.rotationAngle;
           const tTx = Transform.fromTranslation(d.x, -d.y, 0);
@@ -741,7 +743,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
           // scale factors are computed along world axes (matching the
           // axis-aligned pivot/corner captured on pointer down).
           const axisTx = compose(rotationAround(angle, scaleCenter), baseTx);
-          const worldMouse = screenToWorldPoint(axisTx, Point.from(sx, sy, 0));
+          const worldMouse = screenToWorldPoint(axisTx, sp);
           const shiftHeld = e.shiftKey;
           scaleShiftActive = shiftHeld;
           const pivot = shiftHeld ? scaleCenterPivot : scalePivot;
@@ -754,7 +756,8 @@ export const Select2D: Component<Select2DProps> = (props) => {
             // relative movement and adding it to the captured initial scale,
             // the padding offset (which is constant across frames) cancels out.
             const initialWorld = screenToWorldPoint(
-              axisTx, capturedMouseScreen,
+              axisTx,
+              capturedMouseScreen,
             );
             const worldDeltaX = worldMouse.x - initialWorld.x;
             const worldDeltaY = worldMouse.y - initialWorld.y;
@@ -777,14 +780,18 @@ export const Select2D: Component<Select2DProps> = (props) => {
         e.stopImmediatePropagation();
         const parentVp = ctx?.vp();
         if (parentVp) {
-          const rect = canvas.getBoundingClientRect();
-          const sx = e.clientX - rect.left;
-          const sy = e.clientY - rect.top;
           const sf = parentVp.scaleFactor;
-          const worldDx = (sx - state.dragScreenStart.x) * sf;
-          const worldDy = -(sy - state.dragScreenStart.y) * sf;
-          setState('dragDelta',
-            Vector.from(state.dragBase.x + worldDx, state.dragBase.y + worldDy, 0),
+          const worldDelta = screenDeltaToWorld(
+            sf,
+            Vector.fromPoints(sp, state.dragScreenStart),
+          );
+          setState(
+            "dragDelta",
+            Vector.from(
+              state.dragBase.x + worldDelta.x,
+              state.dragBase.y + worldDelta.y,
+              0,
+            ),
           );
         }
         return;
@@ -830,7 +837,13 @@ export const Select2D: Component<Select2DProps> = (props) => {
                 parentVp.transform,
               );
               const dv = scaleCommitTranslation(
-                baseTx, angle, scaleCenter, scaleBox, pivot, sx, sy,
+                baseTx,
+                angle,
+                scaleCenter,
+                scaleBox,
+                pivot,
+                sx,
+                sy,
               );
               if (dv.x !== 0 || dv.y !== 0) {
                 const tCommit: SelectionCommit = {
@@ -868,22 +881,19 @@ export const Select2D: Component<Select2DProps> = (props) => {
     };
 
     const onPointerLeave = () => {
-      setState('hoveredBox', false);
-      setState('hoveredHandle', -1);
+      setState("hoveredBox", false);
+      setState("hoveredHandle", -1);
     };
 
-    canvas.addEventListener("pointerdown", onPointerDown, { capture: true });
-    canvas.addEventListener("pointermove", onPointerMove, { capture: true });
-    canvas.addEventListener("pointerup", onPointerUp, { capture: true });
+    const cleanup = captureMouseEvents(
+      canvas,
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+    );
     canvas.addEventListener("pointerleave", onPointerLeave, { capture: true });
     onCleanup(() => {
-      canvas.removeEventListener("pointerdown", onPointerDown, {
-        capture: true,
-      });
-      canvas.removeEventListener("pointermove", onPointerMove, {
-        capture: true,
-      });
-      canvas.removeEventListener("pointerup", onPointerUp, { capture: true });
+      cleanup();
       canvas.removeEventListener("pointerleave", onPointerLeave, {
         capture: true,
       });

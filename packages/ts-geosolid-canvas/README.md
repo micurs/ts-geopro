@@ -33,16 +33,15 @@ Main canvas component with viewport management, zoom/pan controls, and transform
   import { Select2D, Ellipse, Rectangle } from '@micurs/ts-geosolid-canvas';
   import { Point } from '@micurs/ts-geopro';
 
-  <Select2D color="#00aaff" padding={4}>
+  <Select2D editable={true} color="#00aaff" padding={4}>
     <Ellipse id="shape1" center={Point.from(0, 0, 0)} width={100} height={60} color="#ff6600" />
     <Rectangle id="shape2" center={Point.from(80, 40, 0)} width={60} height={40} color="#2266ff" />
   </Select2D>
   ```
 
   **Props:**
+  - `editable` - enable selection UI with interactive handles (default: `false`)
   - `color` - dashed border color (default: `#00aaff`)
-  - `handleColor` - handle fill color (default: `#ffffff`)
-  - `handleHighlightColor` - handle fill color on hover (default: `#ffdd00`)
   - `padding` - padding around union bounds in world units (default: 6)
   - `snapRotation` - snap rotation to 90-degree increments (default: `false`)
   - `snapRotationColor` - rotation arc/handle color when snapped (default: `#ff8c00`)

@@ -6,9 +6,7 @@ import {
   Line,
   PerfectGrid,
   Rectangle,
-  Rotation2D as _Rotation2D,
   Select2D,
-  Translate2D as _Translate2D,
 } from "../src/index.ts";
 import { Point, Vector as _Vector } from "@micurs/ts-geopro";
 
@@ -54,7 +52,12 @@ const App = () => {
         steps={10}
       />
 
-      <Select2D padding={1} color="#fff0ff" snapRotation>
+      <Select2D
+        padding={4}
+        color="#fff0ff"
+        snapRotation
+        editable
+      >
         <Ellipse
           id="demo-ellipse"
           center={Point.from(-50, -50, 0)}
@@ -62,6 +65,7 @@ const App = () => {
           height={100}
           color="#ff6600"
           strokeWidth={2}
+          editable
         />
         <Rectangle
           id="demo-rect"
@@ -70,6 +74,7 @@ const App = () => {
           height={40}
           color="#60b0ff"
           strokeWidth={2}
+          editable
         />
         <Line
           id="demo-line"
@@ -80,6 +85,7 @@ const App = () => {
           end="arrow"
           endSize={3}
           endStyle="filled"
+          editable
         />
       </Select2D>
 
