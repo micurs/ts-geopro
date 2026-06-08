@@ -1,5 +1,5 @@
 import { Frame, Point, Transform, UnitVector, Vector } from "@micurs/ts-geopro";
-import { getScaledWidth } from "./canvas/utils.ts";
+import { getScaledWidth, requestRedrawIfNeeded } from "./canvas/utils.ts";
 import {
   selectionContext,
   useShapeBoundsRegistration,
@@ -10,14 +10,17 @@ import { drawHandles } from "./canvas/drawing.ts";
 import {
   useEditableDrag,
 } from "./use-editable-drag.ts";
-import { worldToScreenPoint } from "./canvas/geo-utils.ts";
+import {
+  drawInScreenCoordinates,
+  drawInWorldCoordinates,
+  worldPointToScreen,
+} from "./canvas/canvas-geopro.ts";
 import type { BoundingBox, DrawableProps } from "./types.ts";
 
 import {
   createEffect,
   createRenderEffect,
   createSignal,
-  untrack,
   useContext,
 } from "solid-js";
 import type { Component } from "solid-js";
@@ -221,23 +224,22 @@ export const Line: Component<LineProps> = (props) => {
     selCtx.registerBounds(props.id, getBounds());
   });
 
-  // Drag state + stable capture-phase event listeners for editable handles.
-  const drag = useEditableDrag(
-    props,
-    () => canvasCtx?.vp()?.ctx.canvas,
-    () => [from(), to()],
-    () => {
+  const drag = useEditableDrag({
+    editable: () => props.editable === true,
+    getCanvas: () => canvasCtx?.vp()?.ctx.canvas,
+    getHandles: () => [from(), to()],
+    getTransform: () => {
       const vp = canvasCtx?.vp();
       return vp?.transform ?? Transform.identity();
     },
-    (index, worldDelta, startWorld) => {
+    onDrag: (index, worldDelta, startWorld) => {
       if (index === 0) {
         setFrom(startWorld.add(worldDelta));
       } else {
         setTo(startWorld.add(worldDelta));
       }
     },
-  );
+  });
 
   // Single drawing effect: base shape + optional handles.
   createRenderEffect(() => {
@@ -247,40 +249,25 @@ export const Line: Component<LineProps> = (props) => {
       return;
     }
 
-    // Draw base shape.
-    vp.ctx.save();
-    vp.ctx.setTransform(
-      vp.transform.direct(0, 0),
-      -vp.transform.direct(1, 0),
-      vp.transform.direct(0, 1),
-      -vp.transform.direct(1, 1),
-      vp.transform.direct(3, 0),
-      vp.transform.direct(3, 1),
-    );
-    drawLine(vp, {
-      ...props,
-      from: from(),
-      to: to(),
+    drawInWorldCoordinates(vp.ctx, vp.transform, () => {
+      drawLine(vp, {
+        ...props,
+        from: from(),
+        to: to(),
+      });
     });
-    vp.ctx.restore();
 
-    // Draw handles when editable.
     if (props.editable) {
-      vp.ctx.save();
-      vp.ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-      drawHandles(
-        vp.ctx,
-        [from(), to()].map((h) => worldToScreenPoint(vp.transform, h)),
-        drag.hoveredIndex,
-      );
-
-      vp.ctx.restore();
+      drawInScreenCoordinates(vp.ctx, () => {
+        drawHandles(
+          vp.ctx,
+          [from(), to()].map((h) => worldPointToScreen(vp.transform, h)),
+          drag.hoveredIndex,
+        );
+      });
     }
 
-    if (!untrack(() => canvasCtx?.rAFWillClear() ?? false)) {
-      canvasCtx?.requestRedraw();
-    }
+    requestRedrawIfNeeded(canvasCtx);
   });
 
   return null;

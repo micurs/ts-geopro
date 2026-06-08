@@ -18,6 +18,8 @@ Start from this baseline:
 > Work to improve abstractions, modularity, reduce Spaghetti code, improve succinctness and legibility.
 > Be ambitious, if there is a clear path to improving the implementation that involves restructuring some of the codebase, recommend it clearly.
 > Be extremely thorough and rigorous. Measure twice, cut once.
+> Post comments on each file and line where appropriate.
+> At the end post a summary with your overall opinion on the change and a summary of the issues found.
 
 This is a review skill. Do not edit code unless the user explicitly asks for implementation work.
 

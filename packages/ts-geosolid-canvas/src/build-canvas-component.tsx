@@ -1,7 +1,9 @@
-import { createRenderEffect, untrack, useContext } from 'solid-js';
+import { createRenderEffect, useContext } from 'solid-js';
 import type { JSX } from 'solid-js';
 import { canvasContext } from './canvas/canvas-context.ts';
+import { drawInWorldCoordinates } from './canvas/canvas-geopro.ts';
 import type { Viewport } from './canvas/types.ts';
+import { requestRedrawIfNeeded } from './canvas/utils.ts';
 
 export type CanvasDrawFn<TProps extends object> = (
   viewport: Viewport,
@@ -20,18 +22,10 @@ export const buildCanvasComponent = <TProps extends object>(
       if (!vp) {
         return;
       }
-      vp.ctx.setTransform(
-        vp.transform.direct(0, 0),
-        -vp.transform.direct(1, 0),
-        vp.transform.direct(0, 1),
-        -vp.transform.direct(1, 1),
-        vp.transform.direct(3, 0),
-        vp.transform.direct(3, 1)
-      );
-      draw(vp, props);
-      if (!untrack(() => ctx?.rAFWillClear() ?? false)) {
-        ctx?.requestRedraw();
-      }
+      drawInWorldCoordinates(vp.ctx, vp.transform, () => {
+        draw(vp, props);
+      });
+      requestRedrawIfNeeded(ctx);
     });
 
     return null;

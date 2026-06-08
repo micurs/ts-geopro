@@ -92,6 +92,44 @@ const Cross = buildCanvasComponent<CrossProps>((vp, props) => {
 });
 ```
 
+## Canvas/Geopro Utility Functions
+
+The library provides first-class utility functions for interop between `CanvasRenderingContext2D`
+and `@micurs/ts-geopro` transforms. These are exported from `@micurs/ts-geosolid-canvas`.
+
+### Coordinate conversion
+
+- `worldPointToScreen(transform, point)` — project a world-space point to screen pixels under the renderer's Y-negated convention.
+- `screenPointToWorld(transform, point)` — inverse of `worldPointToScreen`.
+- `screenVectorToWorld(scaleFactor, vector)` — convert a screen-space delta to world space.
+- `canvasPointFromEvent(canvas, event)` — compute the mouse position relative to the canvas element.
+- `applyStandardWorldTransform(transform, point)` — apply a Transform using standard (non-transposed) gl-matrix convention.
+
+### Canvas transform helpers
+
+- `canvasTransformFromGeoTransform(transform)` — derive the six `setTransform(a, b, c, d, e, f)` values from a geo Transform.
+- `setCanvasWorldTransform(ctx, transform)` — apply a geo Transform as the current canvas context transform.
+- `resetCanvasTransform(ctx)` — reset to identity (screen coordinates).
+
+### Scoped drawing helpers
+
+- `drawInWorldCoordinates(ctx, transform, draw)` — save, apply world transform, draw, restore.
+- `drawInScreenCoordinates(ctx, draw)` — save, reset to identity, draw, restore.
+
+```tsx
+import { drawInWorldCoordinates, drawInScreenCoordinates } from '@micurs/ts-geosolid-canvas';
+
+// Draw a shape in world space
+drawInWorldCoordinates(ctx, viewport.transform, () => {
+  ctx.strokeRect(x, y, w, h);
+});
+
+// Draw UI overlays in screen space
+drawInScreenCoordinates(ctx, () => {
+  ctx.fillText('label', 10, 20);
+});
+```
+
 ## Version
 
 0.6.0

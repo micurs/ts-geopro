@@ -10,10 +10,41 @@ import type { DragState } from "./types.ts";
 import {
   captureMouseEvents,
   hitTestHandle,
-  screenPoint,
-  screenToWorldPoint,
-  worldToScreenPoint,
 } from "./canvas/geo-utils.ts";
+import {
+  canvasPointFromEvent,
+  screenPointToWorld,
+  worldPointToScreen,
+} from "./canvas/canvas-geopro.ts";
+
+export interface UseEditableDragOptions {
+  /** Accessor returning true when handle drag interaction is enabled. Called
+   * inside the effect so Solid tracks it reactively — toggling this after
+   * mount correctly adds/removes the capture-phase listeners. */
+  editable: () => boolean;
+  /** Returns the canvas element (called inside event handlers, not tracked by Solid) */
+  getCanvas: () => HTMLCanvasElement | undefined;
+  /** Returns the current handle world-space positions */
+  getHandles: () => Point[];
+  /** Returns the current world-to-screen transform */
+  getTransform: () => Transform;
+  /** Called on pointermove while dragging */
+  onDrag: (
+    index: number,
+    worldDelta: Vector,
+    startWorld: Point,
+    startScreen: Point,
+  ) => void;
+  /** Optional — called on pointerdown when a handle is hit, after drag state is set */
+  onDragStart?: (
+    index: number,
+    startWorld: Point,
+    startScreen: Point,
+    handles: Point[],
+  ) => void;
+  /** Optional cleanup after drag ends */
+  onDragEnd?: () => void;
+}
 
 /**
  * Shared hook for editable-handle drag interaction on canvas shapes.
@@ -27,41 +58,8 @@ import {
  * Each shape provides its own `onDrag` to interpret the delta — store the
  * returned `drag` object and read `drag.hoveredIndex` in your
  * `createRenderEffect` to draw highlighted handles.
- *
- * @param props       Component props (must have `editable`).
- * @param getCanvas   Returns the canvas element (called inside event
- *                    handlers, not tracked by Solid).
- * @param getHandles  Returns the current handle world‑space positions.
- * @param getTransform Returns the current world‑to‑screen transform.
- * @param onDrag      Called on pointermove while dragging. Receives the
- *                    handle index, the world‑space delta, the captured
- *                    startWorld/handle position, and the startScreen.
- * @param onDragStart Optional — called on pointerdown when a handle is
- *                    hit, after drag state is set. Use for shape‑specific
- *                    setup (e.g. computing a pivot corner).
- * @param onDragEnd   Optional cleanup after drag ends (e.g. null a pivot).
- * @returns           A reactive `DragState` store. Use `.hoveredIndex`
- *                    for handle rendering.
  */
-export function useEditableDrag(
-  props: { editable?: boolean },
-  getCanvas: () => HTMLCanvasElement | undefined,
-  getHandles: () => Point[],
-  getTransform: () => Transform,
-  onDrag: (
-    index: number,
-    worldDelta: Vector,
-    startWorld: Point,
-    startScreen: Point,
-  ) => void,
-  onDragStart?: (
-    index: number,
-    startWorld: Point,
-    startScreen: Point,
-    handles: Point[],
-  ) => void,
-  onDragEnd?: () => void,
-): DragState {
+export function useEditableDrag(options: UseEditableDragOptions): DragState {
   const [drag, setDrag] = createStore<DragState>({
     index: -1,
     startWorld: null,
@@ -70,21 +68,21 @@ export function useEditableDrag(
   });
 
   createEffect(() => {
-    if (props.editable !== true) {
+    if (!options.editable()) {
       return;
     }
 
-    const canvas = untrack(getCanvas);
+    const canvas = untrack(options.getCanvas);
     if (!canvas) {
       return;
     }
 
     const onPointerDown = (e: PointerEvent) => {
-      const sp = screenPoint(e, canvas);
-      const transform = getTransform();
-      const handles = getHandles();
+      const sp = canvasPointFromEvent(canvas, e);
+      const transform = options.getTransform();
+      const handles = options.getHandles();
       const found = hitTestHandle(
-        handles.map((h) => worldToScreenPoint(transform, h)),
+        handles.map((h) => worldPointToScreen(transform, h)),
         sp,
       );
       if (found !== -1) {
@@ -94,34 +92,34 @@ export function useEditableDrag(
           startWorld: handles[found]!,
           startScreen: sp,
         });
-        onDragStart?.(found, handles[found]!, sp, handles);
+        options.onDragStart?.(found, handles[found]!, sp, handles);
         canvas.setPointerCapture(e.pointerId);
       }
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      const sp = screenPoint(e, canvas);
+      const sp = canvasPointFromEvent(canvas, e);
 
       if (drag.index !== -1) {
         e.stopImmediatePropagation();
-        const transform = getTransform();
+        const transform = options.getTransform();
         const startScreen = drag.startScreen;
         const startWorld = drag.startWorld;
         if (!transform || !startScreen || !startWorld) {
           return;
         }
 
-        const worldNow = screenToWorldPoint(transform, sp);
-        const worldStart = screenToWorldPoint(transform, startScreen);
+        const worldNow = screenPointToWorld(transform, sp);
+        const worldStart = screenPointToWorld(transform, startScreen);
         const worldDelta = Vector.fromPoints(worldNow, worldStart);
-        onDrag(drag.index, worldDelta, startWorld, startScreen);
+        options.onDrag(drag.index, worldDelta, startWorld, startScreen);
         return;
       }
 
-      const transform = getTransform();
+      const transform = options.getTransform();
       if (transform) {
         const handleFound = hitTestHandle(
-          getHandles().map((h) => worldToScreenPoint(transform, h)),
+          options.getHandles().map((h) => worldPointToScreen(transform, h)),
           sp,
         );
         setDrag("hoveredIndex", handleFound);
@@ -134,7 +132,7 @@ export function useEditableDrag(
       }
       e.stopImmediatePropagation();
       setDrag({ index: -1, startWorld: null, startScreen: null });
-      onDragEnd?.();
+      options.onDragEnd?.();
     };
 
     const cleanup = captureMouseEvents(

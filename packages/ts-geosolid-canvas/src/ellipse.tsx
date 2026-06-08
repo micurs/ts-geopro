@@ -1,10 +1,14 @@
-import { createSignal, createEffect, createRenderEffect, untrack, useContext } from 'solid-js';
+import { createSignal, createEffect, createRenderEffect, useContext } from 'solid-js';
 import type { Component } from 'solid-js';
 import type { Viewport } from './canvas/types.ts';
 import { Point, Transform } from '@micurs/ts-geopro';
-import { getScaledWidth } from './canvas/utils.ts';
+import { getScaledWidth, requestRedrawIfNeeded } from './canvas/utils.ts';
 import { drawHandles } from './canvas/drawing.ts';
-import { worldToScreenPoint } from './canvas/geo-utils.ts';
+import {
+  drawInScreenCoordinates,
+  drawInWorldCoordinates,
+  worldPointToScreen,
+} from './canvas/canvas-geopro.ts';
 import { canvasContext } from './canvas/canvas-context.ts';
 import { selectionContext, useShapeBoundsRegistration, useTransformHandler } from './canvas/selection.ts';
 import type { BoundingBox, DrawableProps } from './types.ts';
@@ -96,15 +100,15 @@ export const Ellipse: Component<EllipseProps> = (props) => {
     ];
   }
 
-  const drag = useEditableDrag(
-    props,
-    () => canvasCtx?.vp()?.ctx.canvas,
-    getHandleWorld,
-    () => {
+  const drag = useEditableDrag({
+    editable: () => props.editable === true,
+    getCanvas: () => canvasCtx?.vp()?.ctx.canvas,
+    getHandles: getHandleWorld,
+    getTransform: () => {
       const vp = canvasCtx?.vp();
       return vp?.transform ?? Transform.identity();
     },
-    (index, worldDelta, startWorld) => {
+    onDrag: (index, worldDelta, startWorld) => {
       if (index === 0) {
         const newRx = Math.max(1, (startWorld.x + worldDelta.x) - center().x);
         setW(newRx * 2);
@@ -113,7 +117,7 @@ export const Ellipse: Component<EllipseProps> = (props) => {
         setH(newRy * 2);
       }
     },
-  );
+  });
 
   // Single drawing effect: base shape + optional handles.
   createRenderEffect(() => {
@@ -123,39 +127,26 @@ export const Ellipse: Component<EllipseProps> = (props) => {
       return;
     }
 
-    vp.ctx.save();
-    vp.ctx.setTransform(
-      vp.transform.direct(0, 0),
-      -vp.transform.direct(1, 0),
-      vp.transform.direct(0, 1),
-      -vp.transform.direct(1, 1),
-      vp.transform.direct(3, 0),
-      vp.transform.direct(3, 1),
-    );
-    drawEllipse(vp, {
-      ...props,
-      center: center(),
-      width: w(),
-      height: h(),
+    drawInWorldCoordinates(vp.ctx, vp.transform, () => {
+      drawEllipse(vp, {
+        ...props,
+        center: center(),
+        width: w(),
+        height: h(),
+      });
     });
-    vp.ctx.restore();
 
     if (props.editable) {
-      vp.ctx.save();
-      vp.ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-      drawHandles(
-        vp.ctx,
-        getHandleWorld().map((h) => worldToScreenPoint(vp.transform, h)),
-        drag.hoveredIndex,
-      );
-
-      vp.ctx.restore();
+      drawInScreenCoordinates(vp.ctx, () => {
+        drawHandles(
+          vp.ctx,
+          getHandleWorld().map((h) => worldPointToScreen(vp.transform, h)),
+          drag.hoveredIndex,
+        );
+      });
     }
 
-    if (!untrack(() => canvasCtx?.rAFWillClear() ?? false)) {
-      canvasCtx?.requestRedraw();
-    }
+    requestRedrawIfNeeded(canvasCtx);
   });
 
   return null;

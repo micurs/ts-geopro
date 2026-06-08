@@ -30,4 +30,18 @@ export {
   type SelectionContextValue,
 } from './canvas/selection.ts';
 
+// Canvas/geopro utility functions
+export {
+  applyStandardWorldTransform,
+  canvasPointFromEvent,
+  canvasTransformFromGeoTransform,
+  drawInScreenCoordinates,
+  drawInWorldCoordinates,
+  resetCanvasTransform,
+  screenPointToWorld,
+  screenVectorToWorld,
+  setCanvasWorldTransform,
+  worldPointToScreen,
+} from './canvas/canvas-geopro.ts';
+
 export const version = '0.1.0';

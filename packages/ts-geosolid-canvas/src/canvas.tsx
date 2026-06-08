@@ -8,6 +8,7 @@ import {
   zoomObserver,
 } from "./canvas/utils.ts";
 
+import { drawInScreenCoordinates } from "./canvas/canvas-geopro.ts";
 import { canvasContext } from "./canvas/canvas-context.ts";
 
 import type { Component, JSX } from "solid-js";
@@ -105,10 +106,9 @@ export const Canvas: Component<CanvasProps> = (props: CanvasProps) => {
       if (!vp) {
         return;
       }
-      vp.ctx.save();
-      vp.ctx.setTransform(1, 0, 0, 1, 0, 0);
-      vp.ctx.clearRect(0, 0, vp.ctx.canvas.width, vp.ctx.canvas.height);
-      vp.ctx.restore();
+      drawInScreenCoordinates(vp.ctx, () => {
+        vp.ctx.clearRect(0, 0, vp.ctx.canvas.width, vp.ctx.canvas.height);
+      });
       setRAFWillClear(true);
       setRedrawVersion((v) => v + 1);
       setRAFWillClear(false);

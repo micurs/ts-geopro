@@ -1,3 +1,5 @@
+import { untrack } from 'solid-js';
+import type { CanvasContextValue } from './canvas-context.ts';
 import type { Viewport, Coord2D, ViewportSettings } from './types.ts';
 import { compose, Transform } from '@micurs/ts-geopro';
 
@@ -123,3 +125,23 @@ export const mousePanObserver = (
 export const getScaledWidth = (width: number, scaleFactor: number) => {
   return width / Math.max(1.0, scaleFactor);
 };
+
+/**
+ * Request a canvas redraw only if one hasn't already been scheduled.
+ *
+ * The canvas render loop sets `rAFWillClear` to `true` at the start of each
+ * requestAnimationFrame callback (just before clearing the canvas) and back to
+ * `false` after all draw calls complete. By reading `rAFWillClear()` inside
+ * `untrack`, we avoid creating a Solid dependency on the flag — components
+ * that schedule their own redraws don't re-run when the flag flips.
+ *
+ * If the flag is `false` (no redraw pending from an earlier draw call in this
+ * render pass), we schedule one via `requestRedraw()`. This prevents redundant
+ * rAF cycles while ensuring the canvas eventually gets drawn when any component
+ * requests it.
+ */
+export function requestRedrawIfNeeded(ctx: CanvasContextValue): void {
+  if (!untrack(() => ctx.rAFWillClear())) {
+    ctx.requestRedraw();
+  }
+}

@@ -21,17 +21,18 @@ import {
 import type { BoundingBox } from "./types.ts";
 import type { SelectionCommit } from "./canvas/selection.ts";
 import {
-  applyWorldStandard,
+  applyStandardWorldTransform,
   captureMouseEvents,
   hitTestHandle,
   pointInConvexPolygon,
   rotationAround,
   scaleCommitTranslation,
-  screenDeltaToWorld,
-  screenPoint,
-  screenToWorldPoint,
-  worldToScreenPoint,
+  screenPointToWorld,
+  screenVectorToWorld,
+  worldPointToScreen,
 } from "./canvas/geo-utils.ts";
+import { canvasPointFromEvent, drawInScreenCoordinates } from "./canvas/canvas-geopro.ts";
+import { requestRedrawIfNeeded } from "./canvas/utils.ts";
 import { compose, Point, Transform, Vector } from "@micurs/ts-geopro";
 
 export interface Select2DProps {
@@ -154,7 +155,7 @@ export function buildScaleChildTransform(
   const Rc = rotationAround(angle, center);
   // Pivot rotated into world (standard apply), so axis-aligned scale anchors
   // at the displayed pivot position.
-  const piv = applyWorldStandard(Rc, pivot);
+  const piv = applyStandardWorldTransform(Rc, pivot);
   const Sax = compose(
     Transform.fromTranslation(-piv.x, -piv.y, 0),
     Transform.fromScale(sx, sy, 1),
@@ -164,8 +165,8 @@ export function buildScaleChildTransform(
   let M = compose(Rc, Sax, baseTx);
 
   // Pin the pivot: where the rotation-only path renders the pivot corner.
-  const target = worldToScreenPoint(compose(Rc, baseTx), pivot);
-  const cur = worldToScreenPoint(M, pivot);
+  const target = worldPointToScreen(compose(Rc, baseTx), pivot);
+  const cur = worldPointToScreen(M, pivot);
   const dm = Float32Array.from(M.directMatrix);
   dm[12] = dm[12]! + (target.x - cur.x);
   dm[13] = dm[13]! + (target.y - cur.y);
@@ -215,7 +216,7 @@ function createPointerMoveHandler(
 ): (e: PointerEvent) => void {
   return (e: PointerEvent) => {
     const canvas = e.currentTarget as HTMLCanvasElement;
-    const sp = screenPoint(e, canvas);
+    const sp = canvasPointFromEvent(canvas, e);
 
     const found = hitTestHandle(sel.positions, sp);
     setHoveredHandle(found);
@@ -433,16 +434,12 @@ export const Select2D: Component<Select2DProps> = (props) => {
     }
     if (props.editable !== true) {
       selRefs.positions = [];
-      if (!untrack(() => ctx?.rAFWillClear() ?? false)) {
-        ctx?.requestRedraw();
-      }
+      requestRedrawIfNeeded(ctx);
       return;
     }
     if (!box) {
       selRefs.positions = [];
-      if (!untrack(() => ctx?.rAFWillClear() ?? false)) {
-        ctx?.requestRedraw();
-      }
+      requestRedrawIfNeeded(ctx);
       return;
     }
 
@@ -459,10 +456,10 @@ export const Select2D: Component<Select2DProps> = (props) => {
     // Padding must NOT pass through M — otherwise Sax would scale the padding,
     // making the handle drift away from the cursor as the box resizes.
     const unpadded: CornerQuad = [
-      worldToScreenPoint(M, box.min),
-      worldToScreenPoint(M, Point.from(box.max.x, box.min.y, 0)),
-      worldToScreenPoint(M, box.max),
-      worldToScreenPoint(M, Point.from(box.min.x, box.max.y, 0)),
+      worldPointToScreen(M, box.min),
+      worldPointToScreen(M, Point.from(box.max.x, box.min.y, 0)),
+      worldPointToScreen(M, box.max),
+      worldPointToScreen(M, Point.from(box.min.x, box.max.y, 0)),
     ];
 
     // Constant screen-space padding magnitude (world units → pixels), applied
@@ -523,67 +520,62 @@ export const Select2D: Component<Select2DProps> = (props) => {
       ),
     ];
 
-    vp.ctx.save();
-    vp.ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    const isSelected = hovBox || hovHandle !== -1 || scaling || rotatingNow;
-    vp.ctx.globalAlpha = isSelected ? 1 : 0.7;
-    vp.ctx.strokeStyle = col;
-    vp.ctx.lineWidth = isSelected ? 2 : 1;
-    vp.ctx.setLineDash([6, 4]);
-
-    drawBox(vp.ctx, screenCorners);
-
-    if (scaling) {
-      vp.ctx.globalAlpha = 0.12;
-      vp.ctx.setLineDash([]);
-      drawBox(vp.ctx, unpadded);
+    drawInScreenCoordinates(vp.ctx, () => {
+      const isSelected = hovBox || hovHandle !== -1 || scaling || rotatingNow;
       vp.ctx.globalAlpha = isSelected ? 1 : 0.7;
+      vp.ctx.strokeStyle = col;
+      vp.ctx.lineWidth = isSelected ? 2 : 1;
       vp.ctx.setLineDash([6, 4]);
-    }
 
-    const rotHandlePos = selRefs.positions[4]!;
-    vp.ctx.strokeStyle = snapped ? snapCol : col;
-    vp.ctx.beginPath();
-    vp.ctx.moveTo(topMid.x, topMid.y);
-    vp.ctx.lineTo(rotHandlePos.x, rotHandlePos.y);
-    vp.ctx.stroke();
+      drawBox(vp.ctx, screenCorners);
 
-    // Center crosshair, only while rotating
-    if (rotatingNow) {
+      if (scaling) {
+        vp.ctx.globalAlpha = 0.12;
+        vp.ctx.setLineDash([]);
+        drawBox(vp.ctx, unpadded);
+        vp.ctx.globalAlpha = isSelected ? 1 : 0.7;
+        vp.ctx.setLineDash([6, 4]);
+      }
+
+      const rotHandlePos = selRefs.positions[4]!;
+      vp.ctx.strokeStyle = snapped ? snapCol : col;
+      vp.ctx.beginPath();
+      vp.ctx.moveTo(topMid.x, topMid.y);
+      vp.ctx.lineTo(rotHandlePos.x, rotHandlePos.y);
+      vp.ctx.stroke();
+
+      // Center crosshair, only while rotating
+      if (rotatingNow) {
+        vp.ctx.setLineDash([]);
+        drawCenterCrosshair(vp.ctx, center, snapped ? snapCol : col);
+      }
+
+      // Line and arc from center to mouse cursor while rotating
+      if (rotatingNow && rotPtr) {
+        drawPointerLine(vp.ctx, center, rotPtr, snapped ? snapCol : col);
+        drawRotationArc(
+          vp.ctx,
+          center,
+          50,
+          initAngle,
+          rotArcDelta,
+          snapped ? snapCol : col,
+        );
+      }
+
+      vp.ctx.globalAlpha = 1;
       vp.ctx.setLineDash([]);
-      drawCenterCrosshair(vp.ctx, center, snapped ? snapCol : col);
-    }
 
-    // Line and arc from center to mouse cursor while rotating
-    if (rotatingNow && rotPtr) {
-      drawPointerLine(vp.ctx, center, rotPtr, snapped ? snapCol : col);
-      drawRotationArc(
-        vp.ctx,
-        center,
-        50,
-        initAngle,
-        rotArcDelta,
-        snapped ? snapCol : col,
-      );
-    }
-
-    vp.ctx.globalAlpha = 1;
-    vp.ctx.setLineDash([]);
-
-    selRefs.positions.forEach((pos, i) => {
-      drawHandle({
-        ctx: vp.ctx,
-        position: pos,
-        selected: i === hovHandle || (rotatingNow && i === 4),
+      selRefs.positions.forEach((pos, i) => {
+        drawHandle({
+          ctx: vp.ctx,
+          position: pos,
+          selected: i === hovHandle || (rotatingNow && i === 4),
+        });
       });
     });
 
-    vp.ctx.restore();
-
-    if (!untrack(() => ctx?.rAFWillClear() ?? false)) {
-      ctx?.requestRedraw();
-    }
+    requestRedrawIfNeeded(ctx);
   });
 
   createEffect(() => {
@@ -604,7 +596,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
     );
 
     const onPointerDown = (e: PointerEvent) => {
-      const sp = screenPoint(e, canvas);
+      const sp = canvasPointFromEvent(canvas, e);
       const found = hitTestHandle(selRefs.positions, sp);
       if (found === 4) {
         e.stopImmediatePropagation();
@@ -672,7 +664,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      const sp = screenPoint(e, canvas);
+      const sp = canvasPointFromEvent(canvas, e);
 
       if (state.isRotating) {
         e.stopImmediatePropagation();
@@ -743,7 +735,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
           // scale factors are computed along world axes (matching the
           // axis-aligned pivot/corner captured on pointer down).
           const axisTx = compose(rotationAround(angle, scaleCenter), baseTx);
-          const worldMouse = screenToWorldPoint(axisTx, sp);
+          const worldMouse = screenPointToWorld(axisTx, sp);
           const shiftHeld = e.shiftKey;
           scaleShiftActive = shiftHeld;
           const pivot = shiftHeld ? scaleCenterPivot : scalePivot;
@@ -755,7 +747,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
             // through axisTx is wrong once scaleDelta ≠ [1,1]. By measuring
             // relative movement and adding it to the captured initial scale,
             // the padding offset (which is constant across frames) cancels out.
-            const initialWorld = screenToWorldPoint(
+            const initialWorld = screenPointToWorld(
               axisTx,
               capturedMouseScreen,
             );
@@ -781,7 +773,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
         const parentVp = ctx?.vp();
         if (parentVp) {
           const sf = parentVp.scaleFactor;
-          const worldDelta = screenDeltaToWorld(
+          const worldDelta = screenVectorToWorld(
             sf,
             Vector.fromPoints(sp, state.dragScreenStart),
           );

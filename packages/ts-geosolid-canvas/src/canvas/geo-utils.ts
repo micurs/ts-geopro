@@ -1,74 +1,65 @@
+// geo-utils.ts — compatibility re-export module
+// All canvas/geopro conversion utilities now live in canvas-geopro.ts.
+// This file re-exports them under both new and old names for backward compat
+// during the migration. New code should import from canvas-geopro.ts directly.
+
 import { add, compose, Point, Transform, Vector } from "@micurs/ts-geopro";
 import type { BoundingBox } from "../types.ts";
 
+export {
+  applyStandardWorldTransform,
+  canvasPointFromEvent,
+  canvasTransformFromGeoTransform,
+  drawInScreenCoordinates,
+  drawInWorldCoordinates,
+  resetCanvasTransform,
+  screenPointToWorld,
+  screenVectorToWorld,
+  setCanvasWorldTransform,
+  worldPointToScreen,
+} from "./canvas-geopro.ts";
+
+import {
+  applyStandardWorldTransform,
+  canvasPointFromEvent,
+  screenPointToWorld,
+  screenVectorToWorld,
+  worldPointToScreen,
+} from "./canvas-geopro.ts";
+
 /**
- * Project a world-space point to screen-space using a 2D affine transform.
- * The transform matrix elements follow the DOMMatrix convention:
- *   matrix(a, b, c, d, e, f) = [a c e; b d f; 0 0 1]
- * Y-axis is negated to convert from screen coords (Y-down) to world coords (Y-up).
- *
- * NOTE: this function does NOT use Point.map() because the renderer reads the
- * matrix transposed (via the direct(row,col) accessor) with Y negated, while
- * Point.map uses the standard gl-matrix column-major convention. The manual
- * element access here matches what setTransform actually produces on canvas.
- *
- * @param M - The 4x4 transform (only 2D affine components used)
- * @param p - World-space point
- * @returns Screen-space point (Y-down pixel coordinates)
+ * @deprecated Use `worldPointToScreen(transform, point)` instead.
  */
 export function worldToScreenPoint(M: Transform, p: Point): Point {
-  const m = M.directMatrix;
-  return Point.from(
-    m[0] * p.x + m[1] * p.y + m[12],
-    -m[4] * p.x - m[5] * p.y + m[13],
-    0,
-  );
+  return worldPointToScreen(M, p);
 }
 
 /**
- * Inverse of `worldToScreenPoint` — convert a screen pixel position back to
- * world coordinates under the renderer's transposed + Y-negated convention.
- *
- * Solves for (wx, wy) such that `worldToScreenPoint(M, (wx,wy)) = (sx, sy)`
- * by inverting the 2×2 linear part: `det = a·d − b·c`.
- *
- * @param M  Transform used to render (must match the matrix passed to
- *           `worldToScreenPoint` / `setTransform`).
- * @param p  Screen-space point (pixel coordinates, Y-down).
- * @returns  World-space point, or `Point.origin()` if the transform is singular.
+ * @deprecated Use `screenPointToWorld(transform, point)` instead.
  */
 export function screenToWorldPoint(M: Transform, p: Point): Point {
-  const m = M.directMatrix;
-  const a = m[0], b = m[1], tx = m[12];
-  const c = m[4], d = m[5], ty = m[13];
-  const det = a * d - b * c;
-  if (Math.abs(det) < 1e-12) {
-    return Point.origin();
-  }
-  const invDet = 1 / det;
-  const u = p.x - tx;
-  const v = -(p.y - ty);
-  return Point.from(
-    (d * u - b * v) * invDet,
-    (-c * u + a * v) * invDet,
-    0,
-  );
+  return screenPointToWorld(M, p);
 }
 
 /**
- * Compute the mouse position relative to the canvas element as a Point.
- */
-export function screenPoint(e: PointerEvent, canvas: HTMLCanvasElement): Point {
-  const rect = canvas.getBoundingClientRect();
-  return Point.from(e.clientX - rect.left, e.clientY - rect.top, 0);
-}
-
-/**
- * Convert a screen-space delta Vector to a world-space Vector using the
- * viewport scale factor. Y is negated because screen Y-down maps to world Y-up.
+ * @deprecated Use `screenVectorToWorld(scaleFactor, vector)` instead.
  */
 export function screenDeltaToWorld(sf: number, dv: Vector): Vector {
-  return Vector.from(dv.x * sf, -dv.y * sf, 0);
+  return screenVectorToWorld(sf, dv);
+}
+
+/**
+ * @deprecated Use `canvasPointFromEvent(canvas, event)` instead.
+ */
+export function screenPoint(e: PointerEvent, canvas: HTMLCanvasElement): Point {
+  return canvasPointFromEvent(canvas, e);
+}
+
+/**
+ * @deprecated Use `applyStandardWorldTransform(transform, point)` instead.
+ */
+export function applyWorldStandard(T: Transform, p: Point): Point {
+  return applyStandardWorldTransform(T, p);
 }
 
 /**
@@ -99,23 +90,6 @@ export function rotationAround(angle: number, pivot: Point): Transform {
 }
 
 /**
- * Apply a Transform to a world point using the standard (non-transposed)
- * gl-matrix column-major convention — delegates to `Point.map()`.
- *
- * Unlike `worldToScreenPoint` this does NOT transpose the linear part nor
- * negate Y; it is a straight `M·p` column-vector multiply. This is the
- * correct convention for world-space computation (e.g. locating a rotated
- * pivot in the parent frame) and should NOT be used for screen projection.
- *
- * @param T  Transform in standard gl-matrix column-major storage.
- * @param p  World-space point to transform.
- * @returns  Transformed point.
- */
-export function applyWorldStandard(T: Transform, p: Point): Point {
-  return p.map(T);
-}
-
-/**
  * Project the pivot corner to screen space exactly as the committed shapes
  * will render it, given a trial world translate `dv`.
  *
@@ -125,20 +99,10 @@ export function applyWorldStandard(T: Transform, p: Point): Point {
  *    solved for).
  * 3. Compute the bounding-box center of the translated, scaled corners.
  * 4. Rotate around that center (the selection rotation) via `rotationAround`.
- * 5. Project to screen via `worldToScreenPoint(baseTx)`.
+ * 5. Project to screen via `worldPointToScreen(baseTx)`.
  *
  * The result is affine in `dv`, which is why the 2-point numeric solve in
  * `scaleCommitTranslation` works exactly.
- *
- * @param baseTx  World→screen transform (translateTx · vp.transform).
- * @param angle   Selection rotation angle in radians.
- * @param box     Axis-aligned (unpadded) selection bounds at drag start.
- * @param pivot   Scale pivot corner (world coordinates, un-rotated space).
- * @param sx      X scale factor.
- * @param sy      Y scale factor.
- * @param dv      Trial world translation vector to evaluate.
- * @returns       Screen-space point of the pivot corner under the commit
- *                pipeline with the given translate.
  */
 function committedPivotScreen(
   baseTx: Transform,
@@ -167,7 +131,7 @@ function committedPivotScreen(
     0,
   );
   const pivScaled = pivot.add(dv);
-  return worldToScreenPoint(
+  return worldPointToScreen(
     compose(rotationAround(angle, center), baseTx),
     pivScaled,
   );
@@ -223,13 +187,10 @@ export function scaleCommitTranslation(
   sx: number,
   sy: number,
 ): Vector {
-  // Where the drag pinned the pivot (rotation around the original center).
-  const dragPivot = worldToScreenPoint(
+  const dragPivot = worldPointToScreen(
     compose(rotationAround(angle, center), baseTx),
     pivot,
   );
-  // committedPivot(δ) is affine in δ: sample at 0 and the two unit basis
-  // translates to recover the Jacobian, then solve committedPivot(δ) = dragPivot.
   const r0 = committedPivotScreen(
     baseTx, angle, box, pivot, sx, sy,
     Vector.from(0, 0, 0),
@@ -242,10 +203,8 @@ export function scaleCommitTranslation(
     baseTx, angle, box, pivot, sx, sy,
     Vector.from(0, 1, 0),
   );
-  // Jacobian columns: δ=(1,0) and δ=(0,1) screen deltas (raw numbers).
   const Jxx = rx.x - r0.x, Jyx = rx.y - r0.y;
   const Jxy = ry.x - r0.x, Jyy = ry.y - r0.y;
-  // Screen-space offset from zero-translate pivot to drag pivot.
   const bx = dragPivot.x - r0.x;
   const by = dragPivot.y - r0.y;
   const det = Jxx * Jyy - Jxy * Jyx;
@@ -259,15 +218,6 @@ export function scaleCommitTranslation(
 
 /**
  * Check whether a screen-space point lies inside a convex polygon.
- *
- * For a degenerate polygon (0–2 corners) any point is considered inside,
- * since there is no enclosing region to be outside of.
- * Uses the cross-product sign test: all cross products from consecutive
- * edges to the point must have the same sign for a point to be inside.
- *
- * @param p       - screen-space point to test
- * @param corners - polygon vertices in order (screen pixel coords)
- * @returns true if p is inside the convex polygon
  */
 export function pointInConvexPolygon(
   p: Point,
