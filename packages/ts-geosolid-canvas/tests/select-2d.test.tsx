@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'solid-js/web';
 import { createSignal, useContext } from 'solid-js';
 import { compose, Point, Transform } from '@micurs/ts-geopro';
-import { Select2D, buildScaleChildTransform } from '../src/select-2d.tsx';
+import { Select2D, buildScaleChildTransform, buildChildViewportTransform } from '../src/select-2d.tsx';
 import { scaleCommitTranslation } from '../src/canvas/geo-utils.ts';
 import { canvasContext } from '../src/canvas/canvas-context.ts';
 import { selectionContext } from '../src/canvas/selection.ts';
@@ -1169,6 +1169,115 @@ describe('rotated scale: drag invariants + no release jump', () => {
     out.forEach((p, k) => {
       expect(p[0]).toBeCloseTo(good[k]![0], 3);
       expect(p[1]).toBeCloseTo(good[k]![1], 3);
+    });
+  });
+});
+
+describe('buildChildViewportTransform', () => {
+
+  const w2s = (M: Transform, wx: number, wy: number): [number, number] => {
+    const m = M.directMatrix;
+    return [m[0]! * wx + m[1]! * wy + m[12]!, -m[4]! * wx - m[5]! * wy + m[13]!];
+  };
+  const rotationAround = (angle: number, pivot: Point): Transform =>
+    compose(
+      Transform.fromTranslation(-pivot.x, pivot.y, 0),
+      Transform.fromRotationZ(angle),
+      Transform.fromTranslation(pivot.x, -pivot.y, 0),
+    );
+
+  const box: BoundingBox = { min: Point.from(-50, -30, 0), max: Point.from(50, 30, 0) };
+  const center = Point.from(0, 0, 0);
+  const pivot = Point.from(-50, -30, 0);
+
+  test('null box returns baseTx unchanged', () => {
+    const tx = compose(Transform.fromTranslation(100, 200, 0));
+    const result = buildChildViewportTransform(tx, {
+      box: null,
+      angle: 0.5,
+      sx: 1, sy: 1,
+      scaleShiftActive: false,
+      scaleCenterPivot: Point.origin(),
+      scalePivot: null,
+    });
+    expect(result.directMatrix).toEqual(tx.directMatrix);
+  });
+
+  test('identity config (angle=0, sx=1, sy=1, box present) returns baseTx unchanged', () => {
+    const tx = compose(Transform.fromTranslation(100, 200, 0));
+    const result = buildChildViewportTransform(tx, {
+      box,
+      angle: 0, sx: 1, sy: 1,
+      scaleShiftActive: false,
+      scaleCenterPivot: Point.origin(),
+      scalePivot: null,
+    });
+    expect(result.directMatrix).toEqual(tx.directMatrix);
+  });
+
+  test('rotation-only path matches compose(rotationAround(angle, center), baseTx)', () => {
+    const baseTx = compose(Transform.fromTranslation(400, 300, 0));
+    const angle = Math.PI / 4;
+    const expected = compose(rotationAround(angle, center), baseTx);
+    const result = buildChildViewportTransform(baseTx, {
+      box,
+      angle, sx: 1, sy: 1,
+      scaleShiftActive: false,
+      scaleCenterPivot: Point.origin(),
+      scalePivot: null,
+    });
+    // Verify corner positions match
+    const corners = [[-50, -30], [50, -30], [50, 30], [-50, 30]] as const;
+    corners.forEach(([wx, wy]) => {
+      const [ex, ey] = w2s(expected, wx, wy);
+      const [rx, ry] = w2s(result, wx, wy);
+      expect(rx).toBeCloseTo(ex, 5);
+      expect(ry).toBeCloseTo(ey, 5);
+    });
+  });
+
+  test('scale path delegates to buildScaleChildTransform when pivot is set', () => {
+    const baseTx = compose(Transform.fromTranslation(400, 300, 0));
+    const angle = Math.PI / 6;
+    const sx = 1.5, sy = 0.8;
+    // buildChildViewportTransform with scale-active + non-null pivot
+    const result = buildChildViewportTransform(baseTx, {
+      box,
+      angle, sx, sy,
+      scaleShiftActive: false,
+      scaleCenterPivot: Point.origin(),
+      scalePivot: pivot,
+    });
+    // Equivalent via buildScaleChildTransform directly
+    const direct = buildScaleChildTransform(baseTx, angle, center, pivot, sx, sy);
+    const corners = [[-50, -30], [50, -30], [50, 30], [-50, 30]] as const;
+    corners.forEach(([wx, wy]) => {
+      const [ex, ey] = w2s(direct, wx, wy);
+      const [rx, ry] = w2s(result, wx, wy);
+      expect(rx).toBeCloseTo(ex, 5);
+      expect(ry).toBeCloseTo(ey, 5);
+    });
+  });
+
+  test('null pivot with sx/sy ≠1 falls back to rotation-only path', () => {
+    const baseTx = compose(Transform.fromTranslation(400, 300, 0));
+    const angle = Math.PI / 6;
+    // When both scalePivot=null and scaleShiftActive=false, pivot=null
+    const result = buildChildViewportTransform(baseTx, {
+      box,
+      angle, sx: 1.5, sy: 1.3,
+      scaleShiftActive: false,
+      scaleCenterPivot: Point.origin(),
+      scalePivot: null,
+    });
+    // Should be rotation-only (scale ignored since pivot is null)
+    const expected = compose(rotationAround(angle, center), baseTx);
+    const corners = [[-50, -30], [50, -30], [50, 30], [-50, 30]] as const;
+    corners.forEach(([wx, wy]) => {
+      const [ex, ey] = w2s(expected, wx, wy);
+      const [rx, ry] = w2s(result, wx, wy);
+      expect(rx).toBeCloseTo(ex, 5);
+      expect(ry).toBeCloseTo(ey, 5);
     });
   });
 });

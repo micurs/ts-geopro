@@ -31,7 +31,10 @@ import {
   screenVectorToWorld,
   worldPointToScreen,
 } from "./canvas/geo-utils.ts";
-import { canvasPointFromEvent, drawInScreenCoordinates } from "./canvas/canvas-geopro.ts";
+import {
+  canvasPointFromEvent,
+  drawInScreenCoordinates,
+} from "./canvas/canvas-geopro.ts";
 import { requestRedrawIfNeeded } from "./canvas/utils.ts";
 import { compose, Point, Transform, Vector } from "@micurs/ts-geopro";
 
@@ -172,6 +175,49 @@ export function buildScaleChildTransform(
   dm[13] = dm[13]! + (target.y - cur.y);
   M = Transform.fromMat4(dm);
   return M;
+}
+
+export interface ChildTransformOptions {
+  box: BoundingBox | null;
+  angle: number;
+  sx: number;
+  sy: number;
+  scaleShiftActive: boolean;
+  scaleCenterPivot: Point;
+  scalePivot: Point | null;
+}
+
+/**
+ * Compute the child viewport transform for the current selection drag state.
+ *
+ * Three cases:
+ * 1. **Short-circuit** — null box or no rotation/scale → returns `baseTx` unchanged.
+ * 2. **Scale** (pivot != null) — delegates to `buildScaleChildTransform` for
+ *    axis-aligned scale + center rotation + screen-space pin.
+ * 3. **Rotation-only** — composes `rotationAround(angle, center)` on `baseTx`.
+ *
+ * @param baseTx  World→screen transform with drag translation composed in
+ *                (e.g. `compose(translateTx, vp.transform)`).
+ * @param opts    Control parameters for the computation (box, angle, scale
+ *                factors, pivot info).
+ */
+export function buildChildViewportTransform(
+  baseTx: Transform,
+  opts: ChildTransformOptions,
+): Transform {
+  const { box, angle, sx, sy, scaleShiftActive, scaleCenterPivot, scalePivot } =
+    opts;
+  if (!box || (angle === 0 && sx === 1 && sy === 1)) {
+    return baseTx;
+  }
+  const cx = (box.min.x + box.max.x) / 2;
+  const cy = (box.min.y + box.max.y) / 2;
+  const center = Point.from(cx, cy, 0);
+  const pivot = scaleShiftActive ? scaleCenterPivot : scalePivot;
+  if (pivot !== null) {
+    return buildScaleChildTransform(baseTx, angle, center, pivot, sx, sy);
+  }
+  return compose(rotationAround(angle, center), baseTx);
 }
 
 /**
@@ -376,41 +422,19 @@ export const Select2D: Component<Select2DProps> = (props) => {
     const [sx, sy] = scaleDelta();
     const box = unionBounds();
 
-    const translateTx = Transform.fromTranslation(d.x, -d.y, 0);
-    let childTx = compose(translateTx, vp.transform);
-
-    if (box && (angle !== 0 || sx !== 1 || sy !== 1)) {
-      const center = Point.from(
-        (box.min.x + box.max.x) / 2,
-        (box.min.y + box.max.y) / 2,
-        0,
-      );
-      const sxActive = sx !== 1 || sy !== 1;
-
-      const pivot = scaleShiftActive ? scaleCenterPivot : scalePivot;
-
-      if (sxActive && pivot !== null) {
-        // Axis-aligned scale in un-rotated box space + rotation around the
-        // ORIGINAL box center, so the dragged corner follows the cursor.
-        const baseTx = compose(translateTx, vp.transform);
-        childTx = buildScaleChildTransform(
-          baseTx,
-          angle,
-          center,
-          pivot,
-          sx,
-          sy,
-        );
-      } else {
-        // Center-based: rotation around box center.
-        childTx = compose(
-          rotationAround(angle, center),
-          translateTx,
-          vp.transform,
-        );
-      }
-    }
-
+    const baseTx = compose(
+      Transform.fromTranslation(d.x, -d.y, 0),
+      vp.transform,
+    );
+    const childTx = buildChildViewportTransform(baseTx, {
+      box,
+      angle,
+      sx,
+      sy,
+      scaleShiftActive,
+      scaleCenterPivot,
+      scalePivot,
+    });
     return { ...vp, transform: childTx };
   });
 
