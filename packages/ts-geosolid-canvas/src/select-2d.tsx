@@ -18,7 +18,7 @@ import {
   drawPointerLine,
   drawRotationArc,
 } from "./canvas/drawing.ts";
-import type { BoundingBox } from "./types.ts";
+import type { BoundingBox, InteractiveScaling } from "./types.ts";
 import type { SelectionCommit } from "./canvas/selection.ts";
 import {
   applyStandardWorldTransform,
@@ -66,6 +66,54 @@ interface Select2DState {
   arcDelta: number;
   lastMouseAngle: number;
   rotationBase: number;
+}
+
+function createIdleInteractiveScaling(): InteractiveScaling {
+  return { active: false };
+}
+
+function createInteractiveScaling(
+  box: BoundingBox,
+  found: number,
+  sp: Point,
+  capturedScale: Vector,
+): InteractiveScaling {
+  const axisCorners: Point[] = [
+    box.min,
+    Point.from(box.max.x, box.min.y, 0),
+    box.max,
+    Point.from(box.min.x, box.max.y, 0),
+  ];
+  const opp = (found + 2) % 4;
+  const rawPivot = axisCorners[opp]!;
+  const corner = axisCorners[found]!;
+  const ctr = Point.from(
+    (box.min.x + box.max.x) / 2,
+    (box.min.y + box.max.y) / 2,
+    0,
+  );
+  return {
+    active: true,
+    shiftActive: false,
+    pivot: rawPivot,
+    localCorner: Vector.fromPoints(corner, rawPivot),
+    center: ctr,
+    centerPivot: ctr,
+    centerLocalCorner: Vector.fromPoints(corner, ctr),
+    box: { min: box.min, max: box.max },
+    capturedMouseScreen: sp,
+    capturedScale,
+  };
+}
+
+function withShiftActive(
+  s: InteractiveScaling,
+  shiftHeld: boolean,
+): InteractiveScaling {
+  if (!s.active) {
+    return s;
+  }
+  return { ...s, shiftActive: shiftHeld };
 }
 
 const DEFAULT_COLOR = "#00aaff";
@@ -182,9 +230,7 @@ export interface ChildTransformOptions {
   angle: number;
   sx: number;
   sy: number;
-  scaleShiftActive: boolean;
-  scaleCenterPivot: Point;
-  scalePivot: Point | null;
+  scaling: InteractiveScaling;
 }
 
 /**
@@ -205,19 +251,18 @@ export function buildChildViewportTransform(
   baseTx: Transform,
   opts: ChildTransformOptions,
 ): Transform {
-  const { box, angle, sx, sy, scaleShiftActive, scaleCenterPivot, scalePivot } =
-    opts;
+  const { box, angle, sx, sy, scaling } = opts;
   if (!box || (angle === 0 && sx === 1 && sy === 1)) {
     return baseTx;
   }
   const cx = (box.min.x + box.max.x) / 2;
   const cy = (box.min.y + box.max.y) / 2;
   const center = Point.from(cx, cy, 0);
-  const pivot = scaleShiftActive ? scaleCenterPivot : scalePivot;
-  if (pivot !== null) {
-    return buildScaleChildTransform(baseTx, angle, center, pivot, sx, sy);
+  if (!scaling.active) {
+    return compose(rotationAround(angle, center), baseTx);
   }
-  return compose(rotationAround(angle, center), baseTx);
+  const pivot = scaling.shiftActive ? scaling.centerPivot : scaling.pivot;
+  return buildScaleChildTransform(baseTx, angle, center, pivot, sx, sy);
 }
 
 /**
@@ -385,29 +430,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
 
   const [scaleDelta, setScaleDelta] = createSignal<[number, number]>([1, 1]);
 
-  // Scale uses an axis-aligned (un-rotated) box space so the scale factors
-  // are always world-axis-aligned. The selection's rotation is applied
-  // separately via the same center rotation used by the rotation-only path,
-  // which keeps the scaled box rectangular and the rotation direction
-  // consistent regardless of angle. See childViewport / buildScaleChildTransform.
-  let scaling = false;
-  let scaleShiftActive = false;
-  // Axis-aligned pivot (opposite corner) in un-rotated box world space.
-  // scaleLocalCorner = draggedCorner - pivot (as [dx, dy]).
-  let scalePivot: Point | null = null;
-  let scaleLocalCorner: Vector = Vector.from(0, 0, 0);
-  // Box center captured at drag start (rotation is around this point).
-  let scaleCenter: Point = Point.origin();
-  // For Shift (uniform) scale we pivot around the center instead.
-  let scaleCenterPivot: Point = Point.origin();
-  let scaleCenterLocalCorner: Vector = Vector.from(0, 0, 0);
-  // Padded (un-rotated) box bounds captured at drag start, used to compute the
-  // commit compensation translation.
-  let scaleBox: BoundingBox = { min: Point.origin(), max: Point.origin() };
-  // Mouse screen position and scaleDelta at scale drag start, used for
-  // delta-based nSx/nSy computation that avoids Sax-sandwich distortion.
-  let capturedMouseScreen: Point = Point.origin();
-  let capturedScale: [number, number] = [1, 1];
+  let scaleState = createIdleInteractiveScaling();
 
   const childViewport = createMemo(() => {
     const vp = ctx?.vp();
@@ -431,9 +454,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
       angle,
       sx,
       sy,
-      scaleShiftActive,
-      scaleCenterPivot,
-      scalePivot,
+      scaling: scaleState,
     });
     return { ...vp, transform: childTx };
   });
@@ -545,7 +566,8 @@ export const Select2D: Component<Select2DProps> = (props) => {
     ];
 
     drawInScreenCoordinates(vp.ctx, () => {
-      const isSelected = hovBox || hovHandle !== -1 || scaling || rotatingNow;
+      const isSelected = hovBox || hovHandle !== -1 || scaleState.active ||
+        rotatingNow;
       vp.ctx.globalAlpha = isSelected ? 1 : 0.7;
       vp.ctx.strokeStyle = col;
       vp.ctx.lineWidth = isSelected ? 2 : 1;
@@ -553,7 +575,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
 
       drawBox(vp.ctx, screenCorners);
 
-      if (scaling) {
+      if (scaleState.active) {
         vp.ctx.globalAlpha = 0.12;
         vp.ctx.setLineDash([]);
         drawBox(vp.ctx, unpadded);
@@ -644,30 +666,13 @@ export const Select2D: Component<Select2DProps> = (props) => {
         e.stopImmediatePropagation();
         const box = untrack(() => unionBounds());
         if (box) {
-          const axisCorners: Point[] = [
-            box.min,
-            Point.from(box.max.x, box.min.y, 0),
-            box.max,
-            Point.from(box.min.x, box.max.y, 0),
-          ];
-          const opp = (found + 2) % 4;
-          const rawPivot = axisCorners[opp]!;
-          const corner = axisCorners[found]!;
-          const ctr = Point.from(
-            (box.min.x + box.max.x) / 2,
-            (box.min.y + box.max.y) / 2,
-            0,
+          const [sx, sy] = untrack(() => scaleDelta());
+          scaleState = createInteractiveScaling(
+            box,
+            found,
+            sp,
+            Vector.from(sx, sy, 0),
           );
-          scaleShiftActive = false;
-          scaleCenter = ctr;
-          scaleBox = { min: box.min, max: box.max };
-          scalePivot = rawPivot;
-          scaleLocalCorner = Vector.fromPoints(corner, rawPivot);
-          scaleCenterPivot = ctr;
-          scaleCenterLocalCorner = Vector.fromPoints(corner, ctr);
-          capturedMouseScreen = sp;
-          capturedScale = untrack(() => scaleDelta());
-          scaling = true;
           canvas.setPointerCapture(e.pointerId);
         }
         return;
@@ -746,8 +751,9 @@ export const Select2D: Component<Select2DProps> = (props) => {
         return;
       }
 
-      if (scaling) {
+      if (scaleState.active) {
         e.stopImmediatePropagation();
+        const s = scaleState;
         const parentVp = ctx?.vp();
         if (parentVp) {
           const d = state.dragDelta;
@@ -758,36 +764,33 @@ export const Select2D: Component<Select2DProps> = (props) => {
           // rotation-only render transform. This un-rotates the pointer so
           // scale factors are computed along world axes (matching the
           // axis-aligned pivot/corner captured on pointer down).
-          const axisTx = compose(rotationAround(angle, scaleCenter), baseTx);
+          const axisTx = compose(rotationAround(angle, s.center), baseTx);
           const worldMouse = screenPointToWorld(axisTx, sp);
           const shiftHeld = e.shiftKey;
-          scaleShiftActive = shiftHeld;
-          const pivot = shiftHeld ? scaleCenterPivot : scalePivot;
-          const lc = shiftHeld ? scaleCenterLocalCorner : scaleLocalCorner;
-          if (pivot) {
-            // Delta-based nSx: use the mouse movement relative to the captured
-            // start position. This avoids the Sax-sandwich distortion — the
-            // render includes Sax, but axisTx doesn't, so absolute worldMouse
-            // through axisTx is wrong once scaleDelta ≠ [1,1]. By measuring
-            // relative movement and adding it to the captured initial scale,
-            // the padding offset (which is constant across frames) cancels out.
-            const initialWorld = screenPointToWorld(
-              axisTx,
-              capturedMouseScreen,
-            );
-            const worldDeltaX = worldMouse.x - initialWorld.x;
-            const worldDeltaY = worldMouse.y - initialWorld.y;
-            const initSx = capturedScale[0];
-            const initSy = capturedScale[1];
-            let nSx = lc.x !== 0 ? initSx + worldDeltaX / lc.x : 1;
-            let nSy = lc.y !== 0 ? initSy + worldDeltaY / lc.y : 1;
-            if (shiftHeld) {
-              const uniform = Math.max(Math.abs(nSx), Math.abs(nSy));
-              nSx = uniform;
-              nSy = uniform;
-            }
-            setScaleDelta([Math.max(0.01, nSx), Math.max(0.01, nSy)]);
+          scaleState = withShiftActive(scaleState, shiftHeld);
+          const lc = shiftHeld ? s.centerLocalCorner : s.localCorner;
+          // Delta-based nSx: use the mouse movement relative to the captured
+          // start position. This avoids the Sax-sandwich distortion — the
+          // render includes Sax, but axisTx doesn't, so absolute worldMouse
+          // through axisTx is wrong once scaleDelta ≠ [1,1]. By measuring
+          // relative movement and adding it to the captured initial scale,
+          // the padding offset (which is constant across frames) cancels out.
+          const initialWorld = screenPointToWorld(
+            axisTx,
+            s.capturedMouseScreen,
+          );
+          const worldDeltaX = worldMouse.x - initialWorld.x;
+          const worldDeltaY = worldMouse.y - initialWorld.y;
+          const initSx = s.capturedScale.x;
+          const initSy = s.capturedScale.y;
+          let nSx = lc.x !== 0 ? initSx + worldDeltaX / lc.x : 1;
+          let nSy = lc.y !== 0 ? initSy + worldDeltaY / lc.y : 1;
+          if (shiftHeld) {
+            const uniform = Math.max(Math.abs(nSx), Math.abs(nSy));
+            nSx = uniform;
+            nSy = uniform;
           }
+          setScaleDelta([Math.max(0.01, nSx), Math.max(0.01, nSy)]);
         }
         return;
       }
@@ -822,15 +825,15 @@ export const Select2D: Component<Select2DProps> = (props) => {
         setIsRotationSnapped(false);
         return;
       }
-      if (scaling) {
+      if (scaleState.active) {
         e.stopImmediatePropagation();
-        scaling = false;
         // Commit scale to children then reset. The scale is axis-aligned in
         // the children's (un-rotated) world space around the axis pivot, so
         // the existing axis-aligned commit format applies directly and the
         // selection's virtual rotation is preserved.
-        const pivot = scaleShiftActive ? scaleCenterPivot : scalePivot;
-        if (transformHandlers.size > 0 && pivot) {
+        const s = scaleState;
+        const pivot = s.shiftActive ? s.centerPivot : s.pivot;
+        if (transformHandlers.size > 0) {
           const [sx, sy] = untrack(() => scaleDelta());
           const angle = state.rotationAngle;
           const commit: SelectionCommit = {
@@ -855,9 +858,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
               const dv = scaleCommitTranslation(
                 baseTx,
                 angle,
-                scaleCenter,
-                scaleBox,
-                pivot,
+                s,
                 sx,
                 sy,
               );
@@ -872,7 +873,7 @@ export const Select2D: Component<Select2DProps> = (props) => {
           }
           setScaleDelta([1, 1]);
         }
-        scalePivot = null;
+        scaleState = createIdleInteractiveScaling();
         return;
       }
       if (state.dragging) {

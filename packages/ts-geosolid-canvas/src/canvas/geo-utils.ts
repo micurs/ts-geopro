@@ -4,7 +4,7 @@
 // during the migration. New code should import from canvas-geopro.ts directly.
 
 import { add, compose, Point, Transform, Vector } from "@micurs/ts-geopro";
-import type { BoundingBox } from "../types.ts";
+import type { BoundingBox, InteractiveScaling } from "../types.ts";
 
 export {
   applyStandardWorldTransform,
@@ -168,10 +168,7 @@ function committedPivotScreen(
  *                (i.e. `translateTx · vp.transform`), same as used for the
  *                drag preview.
  * @param angle   Selection rotation angle in radians.
- * @param center  Box center at drag start (rotation around this point during
- *                the drag preview).
- * @param box     Axis-aligned padded selection bounds at drag start.
- * @param pivot   Scale pivot corner (world coordinates, un-rotated space).
+ * @param scaling The active scaling state (carries center, box, pivot).
  * @param sx      X scale factor applied during the drag.
  * @param sy      Y scale factor applied during the drag.
  * @returns       World translate to apply as a `translate` commit
@@ -181,12 +178,15 @@ function committedPivotScreen(
 export function scaleCommitTranslation(
   baseTx: Transform,
   angle: number,
-  center: Point,
-  box: BoundingBox,
-  pivot: Point,
+  scaling: InteractiveScaling,
   sx: number,
   sy: number,
 ): Vector {
+  if (!scaling.active) {
+    return Vector.from(0, 0, 0);
+  }
+  const { center, box, shiftActive, centerPivot, pivot: rawPivot } = scaling;
+  const pivot = shiftActive ? centerPivot : rawPivot;
   const dragPivot = worldPointToScreen(
     compose(rotationAround(angle, center), baseTx),
     pivot,
