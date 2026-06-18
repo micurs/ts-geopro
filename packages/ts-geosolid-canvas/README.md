@@ -21,6 +21,7 @@ transformation support.
 - **PerfectGrid** - Render adaptive grid with origin axes
 - **Ellipse** - Render ellipses with optional fill
 - **Rectangle** - Render rectangles with optional fill
+- **RoundedRectangle** - Render rectangles with variable-radius rounded corners
 
 ### Transform Components
 
@@ -37,7 +38,7 @@ transformation support.
   (yellow fill).
 
   ```tsx
-  import { Ellipse, Rectangle, Select2D } from "@micurs/ts-geosolid-canvas";
+  import { Ellipse, Rectangle, RoundedRectangle, Select2D } from "@micurs/ts-geosolid-canvas";
   import { Point } from "@micurs/ts-geopro";
 
   <Select2D editable={true} color="#00aaff" padding={4}>
@@ -54,6 +55,14 @@ transformation support.
       width={60}
       height={40}
       color="#2266ff"
+    />
+    <RoundedRectangle
+      id="shape3"
+      center={Point.from(-80, -40, 0)}
+      width={80}
+      height={50}
+      radius={10}
+      color="#22cc88"
     />
   </Select2D>;
   ```
@@ -162,4 +171,4 @@ drawInScreenCoordinates(ctx, () => {
 
 ## Version
 
-0.6.0
+0.8.0

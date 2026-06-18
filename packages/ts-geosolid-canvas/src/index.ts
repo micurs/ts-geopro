@@ -15,6 +15,12 @@ export { Line, type LineProps } from './line.tsx';
 export { PerfectGrid, type PerfectGridProps } from './perfect-grid.tsx';
 export { Ellipse, type EllipseProps } from './ellipse.tsx';
 export { Rectangle, type RectangleProps } from './rectangle.tsx';
+export {
+  RoundedRectangle,
+  type RoundedRectangleProps,
+  clampRadius,
+  drawRoundedRectangle,
+} from './rounded-rectangle.tsx';
 
 // Transform components
 export { Rotation2D, type Rotation2DProps } from './rotation-2d.tsx';
@@ -44,4 +50,4 @@ export {
   worldPointToScreen,
 } from './canvas/canvas-geopro.ts';
 
-export const version = '0.1.0';
+export const version = '0.8.0';

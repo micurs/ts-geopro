@@ -6,6 +6,7 @@ import {
   Line,
   PerfectGrid,
   Rectangle,
+  RoundedRectangle,
   Select2D,
 } from "../src/index.ts";
 import { Point, Vector as _Vector } from "@micurs/ts-geopro";
@@ -65,6 +66,16 @@ const App = () => {
           height={100}
           color="#ff6600"
           strokeWidth={2}
+          editable={false}
+        />
+        <RoundedRectangle
+          id="demo-rounded-rect"
+          center={Point.from(50, -50, 0)}
+          width={100}
+          height={100}
+          radius={20}
+          color="#ff00ff"
+          strokeWidth={2}
           editable
         />
         <Rectangle
@@ -74,7 +85,7 @@ const App = () => {
           height={40}
           color="#60b0ff"
           strokeWidth={2}
-          editable
+          editable={false}
         />
         <Line
           id="demo-line"
@@ -85,7 +96,7 @@ const App = () => {
           end="arrow"
           endSize={3}
           endStyle="filled"
-          editable
+          editable={false}
         />
       </Select2D>
 
