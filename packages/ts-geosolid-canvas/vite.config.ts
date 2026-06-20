@@ -17,9 +17,9 @@ export default defineConfig({
       formats: ['es'],
       fileName: 'index',
     },
-    rollupOptions: {
+    rolldownOptions: {
       external: ['solid-js', 'solid-js/web', 'roughjs', '@micurs/ts-geopro'],
     },
   },
-  plugins: [solid(), dts({ rollupTypes: true })],
+  plugins: [solid(), dts({ bundleTypes: true })],
 });

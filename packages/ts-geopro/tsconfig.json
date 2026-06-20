@@ -2,6 +2,7 @@
   "extends": "@total-typescript/tsconfig/tsc/dom/library",
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": "src",
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "noUnusedLocals": true,

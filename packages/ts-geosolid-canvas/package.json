@@ -17,14 +17,15 @@
   },
   "dependencies": {
     "@micurs/ts-geopro": "workspace:*",
-    "solid-js": "^1.9.6"
+    "solid-js": "^1.9.13"
   },
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.58.9",
     "rimraf": "^6.0.1",
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5",
-    "vite-plugin-dts": "^4.3.0",
-    "vite-plugin-solid": "^2.11.6",
-    "vitest": "^3.0.9"
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vite-plugin-dts": "^5.0.2",
+    "vite-plugin-solid": "^2.11.12",
+    "vitest": "^4.1.9"
   }
 }

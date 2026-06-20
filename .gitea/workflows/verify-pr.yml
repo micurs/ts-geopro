@@ -12,14 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }} # Checkout the PR branch
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 20 # Specify the Node.js version
+          node-version: 22 # Specify the Node.js version (22.12+ required by Vite 8)
 
       - name: Set up Deno
         uses: denoland/setup-deno@v1

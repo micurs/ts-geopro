@@ -12,7 +12,7 @@
   "dependencies": {
     "@micurs/ts-geopro": "workspace:*",
     "@micurs/ts-geosolid-canvas": "workspace:*",
-    "solid-js": "^1.9.6"
+    "solid-js": "^1.9.13"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.10",
@@ -20,8 +20,8 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.10",
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5",
-    "vite-plugin-solid": "^2.11.6"
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vite-plugin-solid": "^2.11.12"
   }
 }

@@ -1,6 +1,6 @@
-import type { Component } from 'solid-js';
-import type { Viewport } from './canvas/types.ts';
-import { buildCanvasComponent } from './build-canvas-component.tsx';
+import type { Component } from "solid-js";
+import type { Viewport } from "./canvas/types.ts";
+import { buildCanvasComponent } from "./build-canvas-component.tsx";
 
 export interface PerfectGridProps {
   showOrigin?: boolean; // Whether to show the origin axes
@@ -8,13 +8,16 @@ export interface PerfectGridProps {
   steps?: number; // Number of steps for the grid, default is 10
 }
 
-export const renderPerfectGrid = (viewport: Viewport, props: PerfectGridProps) => {
+export const renderPerfectGrid = (
+  viewport: Viewport,
+  props: PerfectGridProps,
+) => {
   const ctx = viewport.ctx;
   const gridSteps = props.steps ?? 10;
   const [dimX, dimY] = viewport.dimensions;
   const [panX, panY] = viewport.pan;
 
-  const zoom = Math.max(dimX, dimY);
+  const zoom = (dimX + dimY) * .5;
   const d = Math.log10(zoom);
   const g = Math.floor(d);
   const G = Math.pow(gridSteps, g); // This is our optimal step!
@@ -25,7 +28,7 @@ export const renderPerfectGrid = (viewport: Viewport, props: PerfectGridProps) =
   const limX: [number, number] = [-semDimX - panX - GM, semDimX - panX + GM];
   const limY: [number, number] = [-semDimY + panY - GM, semDimY + panY + GM];
   const mainAlpha = props.alpha ?? 1.0;
-  const subGridAlpha = Math.max(0.01, 1 - Math.abs(d - g)) * mainAlpha;
+  const subGridAlpha = Math.max(0.05, 1 - Math.abs(d - g)) * mainAlpha;
   const mainGridAlpha = mainAlpha;
 
   // Dense Grid
@@ -53,7 +56,7 @@ export const renderPerfectGrid = (viewport: Viewport, props: PerfectGridProps) =
 
   // Main Grid
   ctx.lineWidth = viewport.scaleFactor * (subGridAlpha + 1);
-  ctx.strokeStyle = 'white';
+  ctx.strokeStyle = "white";
   ctx.globalAlpha = mainGridAlpha;
   ctx.beginPath();
   for (let x = 0; x <= limX[1]; x += G) {
@@ -78,12 +81,12 @@ export const renderPerfectGrid = (viewport: Viewport, props: PerfectGridProps) =
   if (props.showOrigin) {
     ctx.lineWidth = viewport.scaleFactor * (subGridAlpha + 3);
     ctx.globalAlpha = mainAlpha;
-    ctx.strokeStyle = 'red';
+    ctx.strokeStyle = "red";
     ctx.beginPath();
     ctx.moveTo(limX[0], 0);
     ctx.lineTo(limX[1], 0);
     ctx.stroke();
-    ctx.strokeStyle = 'green';
+    ctx.strokeStyle = "green";
     ctx.beginPath();
     ctx.moveTo(0, limY[1]);
     ctx.lineTo(0, limY[0]);
@@ -92,5 +95,6 @@ export const renderPerfectGrid = (viewport: Viewport, props: PerfectGridProps) =
   ctx.globalAlpha = 1;
 };
 
-export const PerfectGrid: Component<PerfectGridProps> =
-  buildCanvasComponent<PerfectGridProps>(renderPerfectGrid);
+export const PerfectGrid: Component<PerfectGridProps> = buildCanvasComponent<
+  PerfectGridProps
+>(renderPerfectGrid);
